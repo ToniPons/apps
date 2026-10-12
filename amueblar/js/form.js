@@ -18,6 +18,7 @@ import {
   fileToDataUrl,
   formatEuro,
   linkifyText,
+  openLightbox,
 } from './ui.js';
 
 const QUICK_MODE_KEY = 'amueblar-quick-mode';
@@ -264,10 +265,10 @@ export function initForm(callbacks) {
 
     const qty = Math.max(1, Number(producto.cantidad) || 1);
     const hero = producto.fotoMueble
-      ? `<div class="detail-hero"><img src="${escape(producto.fotoMueble)}" alt=""></div>`
+      ? `<div class="detail-hero"><img class="zoomable" src="${escape(producto.fotoMueble)}" alt="Foto del mueble"></div>`
       : `<div class="detail-hero" style="display:grid;place-items:center;color:var(--ink-muted)">Sin foto</div>`;
     const label = producto.fotoEtiqueta
-      ? `<div class="detail-label"><img src="${escape(producto.fotoEtiqueta)}" alt="Etiqueta"></div>`
+      ? `<div class="detail-label"><img class="zoomable" src="${escape(producto.fotoEtiqueta)}" alt="Etiqueta"></div>`
       : '';
     const enlace = (producto.enlace || '').trim();
 
@@ -315,6 +316,15 @@ export function initForm(callbacks) {
         <button type="button" class="btn btn-danger" id="detail-delete">Eliminar</button>
       </div>
     `;
+
+    detailContent.querySelectorAll('img.zoomable').forEach((img) => {
+      img.addEventListener('click', () => {
+        const s =
+          /** @type {HTMLImageElement} */ (img).currentSrc ||
+          img.getAttribute('src');
+        if (s) openLightbox(s);
+      });
+    });
 
     document.getElementById('detail-close')?.addEventListener('click', closeDetail);
     document.getElementById('detail-edit')?.addEventListener('click', () => {

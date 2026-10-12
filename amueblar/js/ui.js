@@ -16,6 +16,59 @@ export function formatEuro(n) {
 }
 
 /**
+ * @param {string} src
+ */
+export function openLightbox(src) {
+  const box = document.getElementById('lightbox');
+  const img = /** @type {HTMLImageElement|null} */ (
+    document.getElementById('lightbox-img')
+  );
+  if (!box || !img || !src) return;
+  img.src = src;
+  box.hidden = false;
+  box.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+export function closeLightbox() {
+  const box = document.getElementById('lightbox');
+  const img = /** @type {HTMLImageElement|null} */ (
+    document.getElementById('lightbox-img')
+  );
+  if (!box) return;
+  box.hidden = true;
+  box.setAttribute('aria-hidden', 'true');
+  if (img) img.removeAttribute('src');
+  if (!document.querySelector('.overlay.open')) {
+    document.body.style.overflow = '';
+  }
+}
+
+function ensureLightboxWired() {
+  if (ensureLightboxWired._done) return;
+  ensureLightboxWired._done = true;
+  const box = document.getElementById('lightbox');
+  document.getElementById('lightbox-close')?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    closeLightbox();
+  });
+  box?.addEventListener('click', () => closeLightbox());
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && box && !box.hidden) closeLightbox();
+  });
+}
+/** @type {boolean} */
+ensureLightboxWired._done = false;
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureLightboxWired);
+  } else {
+    ensureLightboxWired();
+  }
+}
+
+/**
  * @param {object[]} productos
  * @param {{ presupuestoTope?: number|null }} [config]
  */
@@ -283,7 +336,7 @@ export function renderGrid(productos, filters, sort, handlers) {
 
     const src = safePhotoSrc(p.fotoMueble);
     const photoHtml = src
-      ? `<img src="${escapeAttr(src)}" alt="" loading="lazy">`
+      ? `<img class="zoomable" src="${escapeAttr(src)}" alt="" loading="lazy">`
       : `<div class="placeholder">Sin foto</div>`;
 
     const pills = ESTADOS.map((e) => {
@@ -313,7 +366,7 @@ export function renderGrid(productos, filters, sort, handlers) {
     card.addEventListener('click', (ev) => {
       if (
         /** @type {HTMLElement} */ (ev.target).closest(
-          '.estado-pills, input, button'
+          '.estado-pills, input, button, .zoomable'
         )
       )
         return;
@@ -323,7 +376,7 @@ export function renderGrid(productos, filters, sort, handlers) {
       if (ev.key === 'Enter' || ev.key === ' ') {
         if (
           /** @type {HTMLElement} */ (ev.target).closest(
-            '.estado-pills, input, button'
+            '.estado-pills, input, button, .zoomable'
           )
         )
           return;
@@ -339,6 +392,15 @@ export function renderGrid(productos, filters, sort, handlers) {
         if (!estado || estado === p.estado) return;
         handlers.onEstado(p.id, estado);
       });
+    });
+
+    const zoomImg = card.querySelector('.zoomable');
+    zoomImg?.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const s =
+        /** @type {HTMLImageElement} */ (zoomImg).currentSrc ||
+        zoomImg.getAttribute('src');
+      if (s) openLightbox(s);
     });
 
     grid.appendChild(card);
