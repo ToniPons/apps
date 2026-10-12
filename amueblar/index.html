@@ -35,9 +35,10 @@
 
       <header class="header-panel" aria-label="Presupuesto">
         <div class="budget-row" id="budget-row">
-          <div class="budget-card" title="Seleccionado + comprado">
+          <div class="budget-card" title="Seleccionado + pedido + comprado">
             <div class="label">Selección</div>
             <div class="value" id="budget-total">0,00 €</div>
+            <div class="budget-sub">Sel. + Pedido + Comp.</div>
           </div>
           <div class="budget-card real">
             <div class="label">Comprado</div>
@@ -84,6 +85,17 @@
       </header>
 
       <section class="filters" aria-label="Filtros">
+        <label class="search-wrap">
+          <span class="sr-only">Buscar</span>
+          <input
+            id="search-input"
+            type="search"
+            placeholder="Buscar nombre, tienda, notas…"
+            autocomplete="off"
+            enterkeyhint="search"
+          />
+        </label>
+
         <div class="toolbar">
           <button type="button" class="tool-btn tool-toggle" id="btn-more-filters" aria-expanded="false">
             Filtros
@@ -111,6 +123,10 @@
             <span class="filter-label">Categoría</span>
             <div id="filter-categoria" class="chip-scroll" role="listbox" aria-label="Categoría"></div>
           </div>
+          <div class="filter-row" id="filter-tienda-row">
+            <span class="filter-label">Tienda</span>
+            <div id="filter-tienda" class="chip-scroll" role="listbox" aria-label="Tienda"></div>
+          </div>
           <div class="filter-row" id="filter-estado-row">
             <span class="filter-label">Estado</span>
             <div id="filter-estado" class="chip-scroll" role="listbox" aria-label="Estado"></div>
@@ -123,7 +139,8 @@
         </div>
 
         <div class="mode-banner" id="lista-banner" hidden>
-          Lista de la compra · agrupada por tienda · toca ✓ para marcar comprado
+          <span>Lista por tienda · ✓ = comprado</span>
+          <button type="button" class="tool-btn" id="btn-hide-comprados">Ocultar comprados</button>
         </div>
       </section>
 
@@ -310,7 +327,9 @@
         </div>
 
         <h3 class="settings-subtitle">Estancias</h3>
-        <p class="step-hint">Escribe el nombre y pulsa Añadir (se guarda al momento).</p>
+        <p class="step-hint">
+          Edita el nombre para renombrar. Al quitar, los productos pasan a otra estancia.
+        </p>
         <div id="settings-estancias" class="settings-estancias"></div>
         <div class="btn-row estancia-add-row">
           <input id="new-estancia" type="text" placeholder="Nueva estancia" autocomplete="off" />
@@ -319,45 +338,41 @@
 
         <h3 class="settings-subtitle">Sincronizar con pareja</h3>
         <ol class="sync-steps">
-          <li>Tú: <strong>Enviar sync</strong> (sin fotos)</li>
-          <li>Pareja: <strong>Pegar sync</strong> o importar → Fusionar</li>
-          <li>Pareja: <strong>Enviar sync</strong></li>
-          <li>Tú: <strong>Pegar sync</strong> → Fusionar</li>
+          <li>Tú: <strong>Exportar archivo</strong> (incluye fotos y borrados)</li>
+          <li>Envías el .json (WhatsApp, Drive, AirDrop…)</li>
+          <li>Pareja: <strong>Importar</strong> → Fusionar</li>
+          <li>Pareja exporta e importas tú → Fusionar</li>
         </ol>
-        <p class="step-hint">
-          Se unen por ID (y por nombre+tienda+precio si coinciden). Los borrados también se propagan.
-        </p>
-        <div class="btn-row">
-          <button type="button" class="btn btn-primary" id="btn-sync-send">Enviar sync</button>
-          <button type="button" class="btn btn-secondary" id="btn-sync-paste">Pegar sync</button>
-        </div>
-
-        <h3 class="settings-subtitle">Archivo</h3>
-        <p class="step-hint" id="last-backup-label">Último backup: —</p>
+        <p class="step-hint" id="last-backup-label">Último export: —</p>
+        <p class="step-hint" id="storage-hint" hidden></p>
         <div class="form-group">
-          <label for="export-filename">Nombre al exportar</label>
+          <label for="export-filename">Nombre del archivo</label>
           <input
             id="export-filename"
             type="text"
-            value="amueblar-sync"
+            value="amueblar-backup"
             autocomplete="off"
             spellcheck="false"
           />
         </div>
         <div class="btn-row">
-          <button type="button" class="btn btn-secondary" id="btn-export-sync">Exportar sync</button>
-          <button type="button" class="btn btn-secondary" id="btn-export">Exportar con fotos</button>
-        </div>
-        <div class="btn-row">
-          <button type="button" class="btn btn-primary" id="btn-import">Importar archivo…</button>
+          <button type="button" class="btn btn-primary" id="btn-export">Exportar archivo</button>
+          <button type="button" class="btn btn-secondary" id="btn-import">Importar…</button>
         </div>
 
         <div class="import-choice" id="import-choice" hidden>
           <p class="step-hint" id="import-choice-meta"></p>
           <div id="merge-preview" class="merge-preview"></div>
+          <label class="soft-match-opt" id="soft-match-label" hidden>
+            <input type="checkbox" id="import-soft-match" />
+            <span>
+              Unir coincidencias por nombre + tienda + precio
+              (<span id="soft-match-count">0</span>)
+            </span>
+          </label>
           <p class="step-hint">
-            <strong>Fusionar</strong> une sin borrar lo demás. <strong>Reemplazar</strong> borra lo
-            local (antes se guarda un backup automático).
+            <strong>Fusionar</strong> une por ID sin borrar lo demás.
+            <strong>Reemplazar</strong> borra lo local (antes descarga un backup de seguridad).
           </p>
           <div class="btn-row">
             <button type="button" class="btn btn-primary" id="btn-import-merge">Fusionar</button>
@@ -366,8 +381,9 @@
           <button type="button" class="btn btn-secondary" id="btn-import-cancel">Cancelar</button>
         </div>
 
+        <h3 class="settings-subtitle">Compartir</h3>
         <div class="btn-row">
-          <button type="button" class="btn btn-secondary" id="btn-share">Compartir resumen texto</button>
+          <button type="button" class="btn btn-secondary" id="btn-share">Compartir resumen</button>
         </div>
         <div class="btn-row sticky-actions">
           <button type="button" class="btn btn-secondary" id="settings-cancel">Cancelar</button>

@@ -28,7 +28,13 @@ export const CATEGORIAS = [
   'Otro',
 ];
 
-export const ESTADOS = ['Candidato', 'Seleccionado', 'Comprado'];
+export const ESTADOS = ['Candidato', 'Seleccionado', 'Pedido', 'Comprado'];
+
+/** Estados que cuentan en el presupuesto «Selección». */
+export const ESTADOS_PRESUPUESTO = ['Seleccionado', 'Pedido', 'Comprado'];
+
+/** Estados que aparecen en la lista de la compra. */
+export const ESTADOS_LISTA = ['Seleccionado', 'Pedido', 'Comprado'];
 
 export const TIENDAS_PRESET = [
   'IKEA',
@@ -115,7 +121,10 @@ export function normalizeProducto(data) {
     medidas: data.medidas || '',
     enlace: data.enlace || '',
     notas: data.notas || '',
-    estado: data.estado || 'Candidato',
+    estado:
+      data.estado && String(data.estado).trim()
+        ? String(data.estado)
+        : 'Candidato',
     fotoMueble: sanitizePhoto(data.fotoMueble),
     fotoEtiqueta: sanitizePhoto(data.fotoEtiqueta),
     fechaCreacion,
@@ -324,7 +333,7 @@ export function calcPresupuesto(productos) {
   for (const p of productos) {
     if (p.deletedAt) continue;
     const total = lineTotal(p);
-    if (p.estado === 'Seleccionado' || p.estado === 'Comprado') {
+    if (ESTADOS_PRESUPUESTO.includes(p.estado)) {
       totalSeleccionado += total;
     }
     if (p.estado === 'Comprado') {
@@ -347,7 +356,7 @@ export function resumenPorEstancia(productos) {
     if (!map[key]) map[key] = { seleccionado: 0, comprado: 0, items: 0 };
     map[key].items += 1;
     const total = lineTotal(p);
-    if (p.estado === 'Seleccionado' || p.estado === 'Comprado') {
+    if (ESTADOS_PRESUPUESTO.includes(p.estado)) {
       map[key].seleccionado += total;
     }
     if (p.estado === 'Comprado') {
@@ -572,13 +581,16 @@ function productosDiffer(a, b) {
 
 /**
  * Plan de merge sin escribir (para preview).
+ * Soft-match (nombre+tienda+precio) solo si allowSoftMatch === true.
  * @param {object} backup
  * @param {object[]} localProductos includeDeleted recommended
+ * @param {{ allowSoftMatch?: boolean }} [opts]
  */
-export function planMerge(backup, localProductos) {
+export function planMerge(backup, localProductos, opts = {}) {
   if (!backup || !Array.isArray(backup.productos)) {
     throw new Error('Backup inválido');
   }
+  const allowSoftMatch = opts.allowSoftMatch === true;
 
   const byId = new Map(localProductos.map((p) => [p.id, p]));
   /** @type {Map<string, object>} */
@@ -597,6 +609,7 @@ export function planMerge(backup, localProductos) {
     restored: 0,
     softLinked: 0,
   };
+  let softCandidates = 0;
   /** @type {{ action: string, name: string }[]} */
   const samples = [];
 
@@ -608,9 +621,12 @@ export function planMerge(backup, localProductos) {
     if (!local && !incoming.deletedAt) {
       const soft = softIndex.get(softMatchKey(incoming));
       if (soft) {
-        local = soft;
-        incoming = normalizeProducto({ ...incoming, id: soft.id });
-        stats.softLinked += 1;
+        softCandidates += 1;
+        if (allowSoftMatch) {
+          local = soft;
+          incoming = normalizeProducto({ ...incoming, id: soft.id });
+          stats.softLinked += 1;
+        }
       }
     }
 
@@ -650,7 +666,12 @@ export function planMerge(backup, localProductos) {
     }
   }
 
-  return { stats, samples, config: backup.config || null };
+  return {
+    stats,
+    samples,
+    softCandidates,
+    config: backup.config || null,
+  };
 }
 
 /**
@@ -681,22 +702,34 @@ async function applyConfigFromBackup(incomingConfig, mode) {
 
   let presupuestoTope = current.presupuestoTope;
   let presupuestoTopeUpdatedAt = current.presupuestoTopeUpdatedAt;
-  const inTope =
-    incomingConfig.presupuestoTope != null &&
-    incomingConfig.presupuestoTope !== '' &&
-    !Number.isNaN(Number(incomingConfig.presupuestoTope))
-      ? Number(incomingConfig.presupuestoTope)
-      : null;
-  const inTs = incomingConfig.presupuestoTopeUpdatedAt
-    ? new Date(incomingConfig.presupuestoTopeUpdatedAt).getTime()
-    : 0;
-  const localTs = current.presupuestoTopeUpdatedAt
-    ? new Date(current.presupuestoTopeUpdatedAt).getTime()
-    : 0;
-  if (inTope != null && (inTs >= localTs || !current.presupuestoTopeUpdatedAt)) {
-    presupuestoTope = inTope;
-    presupuestoTopeUpdatedAt =
-      incomingConfig.presupuestoTopeUpdatedAt || new Date().toISOString();
+  const hasIncomingTope = Object.prototype.hasOwnProperty.call(
+    incomingConfig,
+    'presupuestoTope'
+  );
+  if (hasIncomingTope) {
+    const inTope =
+      incomingConfig.presupuestoTope != null &&
+      incomingConfig.presupuestoTope !== '' &&
+      !Number.isNaN(Number(incomingConfig.presupuestoTope))
+        ? Number(incomingConfig.presupuestoTope)
+        : null;
+    const inTs = incomingConfig.presupuestoTopeUpdatedAt
+      ? new Date(incomingConfig.presupuestoTopeUpdatedAt).getTime()
+      : 0;
+    const localTs = current.presupuestoTopeUpdatedAt
+      ? new Date(current.presupuestoTopeUpdatedAt).getTime()
+      : 0;
+    if (incomingConfig.presupuestoTopeUpdatedAt) {
+      // LWW con timestamp: también propaga «sin tope» (null)
+      if (!current.presupuestoTopeUpdatedAt || inTs >= localTs) {
+        presupuestoTope = inTope;
+        presupuestoTopeUpdatedAt = incomingConfig.presupuestoTopeUpdatedAt;
+      }
+    } else if (inTope != null && !current.presupuestoTopeUpdatedAt) {
+      // Backup antiguo sin timestamp: solo adopta un tope con valor
+      presupuestoTope = inTope;
+      presupuestoTopeUpdatedAt = new Date().toISOString();
+    }
   }
 
   let estancias = current.estancias;
@@ -723,12 +756,14 @@ function putInStore(store, producto) {
 /**
  * @param {object} backup
  * @param {'merge'|'replace'} mode
+ * @param {{ allowSoftMatch?: boolean }} [opts]
  * @returns {Promise<{ added: number, updated: number, kept: number, deleted: number, restored: number, softLinked: number, total: number }>}
  */
-export async function importBackup(backup, mode = 'merge') {
+export async function importBackup(backup, mode = 'merge', opts = {}) {
   if (!backup || !Array.isArray(backup.productos)) {
     throw new Error('Backup inválido');
   }
+  const allowSoftMatch = opts.allowSoftMatch === true;
 
   const db = await openDb();
 
@@ -787,7 +822,7 @@ export async function importBackup(backup, mode = 'merge') {
     let incoming = normalizeProducto({ ...raw, id: raw.id || createId() });
     let local = byId.get(incoming.id);
 
-    if (!local && !incoming.deletedAt) {
+    if (!local && !incoming.deletedAt && allowSoftMatch) {
       const soft = softIndex.get(softMatchKey(incoming));
       if (soft) {
         local = soft;
@@ -843,4 +878,48 @@ export async function importBackup(backup, mode = 'merge') {
     stats.deleted +
     stats.restored;
   return stats;
+}
+
+/**
+ * Renombra una estancia en config y reasigna productos (incl. tombstones).
+ * @param {string} from
+ * @param {string} to
+ * @returns {Promise<number>} productos tocados
+ */
+export async function reassignEstancia(from, to) {
+  if (!from || !to || from === to) return 0;
+  const all = await getAllProductos({ includeDeleted: true });
+  const targets = all.filter((p) => p.estancia === from);
+  if (!targets.length) return 0;
+  const db = await openDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    const now = new Date().toISOString();
+    for (const p of targets) {
+      putInStore(store, {
+        ...p,
+        estancia: to,
+        fechaActualizacion: now,
+      });
+    }
+    tx.oncomplete = () => resolve(undefined);
+    tx.onerror = () => reject(idbReject(tx.error));
+  });
+  return targets.length;
+}
+
+/**
+ * Estimación aproximada del peso de fotos en memoria (MB).
+ * @param {object[]} productos
+ */
+export function estimatePhotosMb(productos) {
+  let chars = 0;
+  for (const p of productos) {
+    if (p.deletedAt) continue;
+    if (p.fotoMueble) chars += String(p.fotoMueble).length;
+    if (p.fotoEtiqueta) chars += String(p.fotoEtiqueta).length;
+  }
+  // data URL base64 ≈ 3/4 bytes útiles; chars ≈ bytes del string
+  return (chars * 0.75) / (1024 * 1024);
 }

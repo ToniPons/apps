@@ -1,6 +1,7 @@
 import {
   CATEGORIAS,
   ESTADOS,
+  ESTADOS_LISTA,
   calcPresupuesto,
   lineTotal,
   resumenPorEstancia,
@@ -18,6 +19,11 @@ export function formatEuro(n) {
 /**
  * @param {string} src
  */
+export function isLightboxOpen() {
+  const box = document.getElementById('lightbox');
+  return Boolean(box && !box.hidden);
+}
+
 export function openLightbox(src) {
   const box = document.getElementById('lightbox');
   const img = /** @type {HTMLImageElement|null} */ (
@@ -53,9 +59,16 @@ function ensureLightboxWired() {
     closeLightbox();
   });
   box?.addEventListener('click', () => closeLightbox());
-  document.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape' && box && !box.hidden) closeLightbox();
-  });
+  document.addEventListener(
+    'keydown',
+    (ev) => {
+      if (ev.key !== 'Escape' || !box || box.hidden) return;
+      closeLightbox();
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+    },
+    true
+  );
 }
 /** @type {boolean} */
 ensureLightboxWired._done = false;
@@ -121,7 +134,7 @@ export function updateBudget(productos, config = {}) {
       progressFill.classList.toggle('over', over);
       progressLabel.textContent = over
         ? `Te pasas ${formatEuro(totalSeleccionado - tope)}`
-        : `${pct}% del tope (incluye comprado)`;
+        : `${pct}% del tope (Sel. + Pedido + Comp.)`;
     } else {
       progress.hidden = true;
     }
@@ -131,7 +144,7 @@ export function updateBudget(productos, config = {}) {
 }
 
 /**
- * @param {'estancia'|'categoria'|'estado'} type
+ * @param {'estancia'|'categoria'|'estado'|'tienda'} type
  * @param {string} current
  * @param {(value: string) => void} onChange
  * @param {string[]} [baseList]
@@ -143,12 +156,14 @@ export function renderChips(type, current, onChange, baseList = [], extraValues 
       ? 'filter-estancia'
       : type === 'categoria'
         ? 'filter-categoria'
-        : 'filter-estado';
+        : type === 'tienda'
+          ? 'filter-tienda'
+          : 'filter-estado';
   const container = document.getElementById(containerId);
   if (!container) return;
 
   const base =
-    type === 'estancia'
+    type === 'estancia' || type === 'tienda'
       ? baseList
       : type === 'categoria'
         ? CATEGORIAS
@@ -195,20 +210,34 @@ export function updateFilterMeta(filteredCount, totalCount, hasActiveFilters) {
 
 /**
  * @param {object[]} productos
- * @param {{ estancia: string, categoria: string, estado: string, listaCompra?: boolean, query?: string }} filters
+ * @param {{
+ *   estancia: string,
+ *   categoria: string,
+ *   estado: string,
+ *   tienda?: string,
+ *   listaCompra?: boolean,
+ *   hideComprados?: boolean,
+ *   query?: string
+ * }} filters
  */
 export function filterProductos(productos, filters) {
   let filtered = productos.filter((p) => !p.deletedAt);
   if (filters.listaCompra) {
-    filtered = filtered.filter(
-      (p) => p.estado === 'Seleccionado' || p.estado === 'Comprado'
-    );
+    filtered = filtered.filter((p) => ESTADOS_LISTA.includes(p.estado));
+    if (filters.hideComprados) {
+      filtered = filtered.filter((p) => p.estado !== 'Comprado');
+    }
   }
   if (filters.estancia && filters.estancia !== 'Todos') {
     filtered = filtered.filter((p) => p.estancia === filters.estancia);
   }
   if (filters.categoria && filters.categoria !== 'Todos') {
     filtered = filtered.filter((p) => p.categoria === filters.categoria);
+  }
+  if (filters.tienda && filters.tienda !== 'Todos') {
+    filtered = filtered.filter(
+      (p) => (p.tienda || '').trim() === filters.tienda
+    );
   }
   if (filters.estado && filters.estado !== 'Todos') {
     filtered = filtered.filter((p) => p.estado === filters.estado);
@@ -224,6 +253,7 @@ export function filterProductos(productos, filters) {
         p.medidas,
         p.estancia,
         p.categoria,
+        p.estado,
       ]
         .join(' ')
         .toLowerCase();
@@ -259,6 +289,7 @@ export function sortProductos(productos, sort) {
 const ESTADO_SHORT = {
   Candidato: 'Cand.',
   Seleccionado: 'Sel.',
+  Pedido: 'Ped.',
   Comprado: 'Comp.',
 };
 
@@ -282,6 +313,7 @@ export function renderGrid(productos, filters, sort, handlers) {
   const hasFilters =
     (filters.estancia && filters.estancia !== 'Todos') ||
     (filters.categoria && filters.categoria !== 'Todos') ||
+    (filters.tienda && filters.tienda !== 'Todos') ||
     (filters.estado && filters.estado !== 'Todos') ||
     filters.listaCompra ||
     Boolean((filters.query || '').trim());
@@ -421,9 +453,14 @@ function renderListaCompra(grid, productos, handlers) {
     const section = document.createElement('section');
     section.className = 'lista-group';
     const sum = group.items.reduce((acc, p) => acc + lineTotal(p), 0);
+    const done = group.items.filter((p) => p.estado === 'Comprado').length;
+    const total = group.items.length;
     section.innerHTML = `
       <div class="lista-group-head">
-        <h3>${escapeHtml(group.tienda)}</h3>
+        <div>
+          <h3>${escapeHtml(group.tienda)}</h3>
+          <span class="lista-progress">${done}/${total} comprados</span>
+        </div>
         <span>${formatEuro(sum)}</span>
       </div>
     `;
@@ -432,13 +469,17 @@ function renderListaCompra(grid, productos, handlers) {
     for (const p of group.items) {
       const li = document.createElement('li');
       li.className = `lista-item${p.estado === 'Comprado' ? ' done' : ''}`;
+      const estadoTag =
+        p.estado === 'Pedido'
+          ? ` · ${escapeHtml(p.estado)}`
+          : '';
       li.innerHTML = `
         <button type="button" class="lista-check" aria-label="Marcar comprado" data-id="${escapeAttr(p.id)}">
           ${p.estado === 'Comprado' ? '✓' : ''}
         </button>
         <button type="button" class="lista-main" data-open="${escapeAttr(p.id)}">
           <span class="lista-name">${escapeHtml(p.nombre || 'Sin nombre')}</span>
-          <span class="lista-meta">${formatEuro(lineTotal(p))} · ${escapeHtml(p.estancia || '')}</span>
+          <span class="lista-meta">${formatEuro(lineTotal(p))} · ${escapeHtml(p.estancia || '')}${estadoTag}</span>
         </button>
       `;
       ul.appendChild(li);
@@ -515,19 +556,24 @@ export function linkifyText(text) {
 /**
  * @param {object[]} productos
  * @param {object} config
+ * @param {{ tienda?: string|null }} [opts]
  */
-export function buildShareText(productos, config) {
-  const { totalSeleccionado, gastoReal } = calcPresupuesto(productos);
-  const lista = productos.filter(
-    (p) =>
-      !p.deletedAt && (p.estado === 'Seleccionado' || p.estado === 'Comprado')
-  );
+export function buildShareText(productos, config, opts = {}) {
+  const tiendaFilter = (opts.tienda || '').trim();
+  let scope = productos.filter((p) => !p.deletedAt);
+  if (tiendaFilter) {
+    scope = scope.filter((p) => (p.tienda || '').trim() === tiendaFilter);
+  }
+  const { totalSeleccionado, gastoReal } = calcPresupuesto(scope);
+  const lista = scope.filter((p) => ESTADOS_LISTA.includes(p.estado));
   const lines = [
-    'Amueblar — resumen mudanza',
-    `Seleccionado (incluye comprado): ${formatEuro(totalSeleccionado)}`,
+    tiendaFilter
+      ? `Amueblar — ${tiendaFilter}`
+      : 'Amueblar — resumen mudanza',
+    `Selección (Sel.+Pedido+Comp.): ${formatEuro(totalSeleccionado)}`,
     `Comprado: ${formatEuro(gastoReal)}`,
   ];
-  if (config?.presupuestoTope != null) {
+  if (!tiendaFilter && config?.presupuestoTope != null) {
     lines.push(`Tope: ${formatEuro(config.presupuestoTope)}`);
   }
   lines.push('', 'Lista:');
@@ -537,7 +583,9 @@ export function buildShareText(productos, config) {
     for (const p of lista) {
       const qty = Math.max(1, Number(p.cantidad) || 1);
       lines.push(
-        `• [${p.estado}] ${p.nombre || 'Sin nombre'} — ${formatEuro(lineTotal(p))}${qty > 1 ? ` (${qty}×)` : ''}${p.tienda ? ` · ${p.tienda}` : ''}`
+        `• [${p.estado}] ${p.nombre || 'Sin nombre'} — ${formatEuro(lineTotal(p))}${qty > 1 ? ` (${qty}×)` : ''}${
+          !tiendaFilter && p.tienda ? ` · ${p.tienda}` : ''
+        }`
       );
     }
   }
@@ -546,6 +594,13 @@ export function buildShareText(productos, config) {
 
 /**
  * @param {{ stats: object, samples: {action:string,name:string}[] }} plan
+ */
+/**
+ * @param {{
+ *   stats: object,
+ *   samples: {action:string,name:string}[],
+ *   softCandidates?: number
+ * }} plan
  */
 export function renderMergePreview(plan) {
   const el = document.getElementById('merge-preview');
@@ -557,8 +612,8 @@ export function renderMergePreview(plan) {
       <span>~${s.updated} actualiz.</span>
       <span>−${s.deleted || 0} borrados</span>
       <span>=${s.kept} iguales</span>
-      ${s.softLinked ? `<span>🔗${s.softLinked} unidos</span>` : ''}
-      ${s.restored ? `<span>↩${s.restored} rest.</span>` : ''}
+      ${s.softLinked ? `<span>🔗 ${s.softLinked} unidos</span>` : ''}
+      ${s.restored ? `<span>↩ ${s.restored} rest.</span>` : ''}
     </div>
     ${
       plan.samples?.length
@@ -571,6 +626,12 @@ export function renderMergePreview(plan) {
         : ''
     }
   `;
+
+  const softLabel = document.getElementById('soft-match-label');
+  const softCount = document.getElementById('soft-match-count');
+  const softCandidates = plan.softCandidates || 0;
+  if (softLabel) softLabel.hidden = softCandidates === 0;
+  if (softCount) softCount.textContent = String(softCandidates);
 }
 
 /**

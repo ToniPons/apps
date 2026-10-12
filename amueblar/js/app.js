@@ -9,6 +9,8 @@ import {
   importBackup,
   parseBackupPayload,
   planMerge,
+  reassignEstancia,
+  estimatePhotosMb,
   ESTANCIAS_DEFAULT,
 } from './db.js';
 import {
@@ -20,6 +22,8 @@ import {
   renderResumenEstancias,
   renderMergePreview,
   buildShareText,
+  isLightboxOpen,
+  closeLightbox,
 } from './ui.js';
 import { initForm } from './form.js';
 
@@ -27,7 +31,9 @@ const filters = {
   estancia: 'Todos',
   categoria: 'Todos',
   estado: 'Todos',
+  tienda: 'Todos',
   listaCompra: false,
+  hideComprados: false,
   query: '',
 };
 
@@ -56,9 +62,16 @@ function clearFilters() {
   filters.estancia = 'Todos';
   filters.categoria = 'Todos';
   filters.estado = 'Todos';
+  filters.tienda = 'Todos';
   filters.listaCompra = false;
+  filters.hideComprados = false;
   filters.query = '';
+  const search = /** @type {HTMLInputElement|null} */ (
+    document.getElementById('search-input')
+  );
+  if (search) search.value = '';
   document.getElementById('btn-lista-compra')?.classList.remove('active');
+  syncHideCompradosBtn();
   paint();
 }
 
@@ -66,7 +79,9 @@ function activeFilterSummary() {
   const parts = [];
   if (filters.estancia && filters.estancia !== 'Todos') parts.push(filters.estancia);
   if (filters.categoria && filters.categoria !== 'Todos') parts.push(filters.categoria);
+  if (filters.tienda && filters.tienda !== 'Todos') parts.push(filters.tienda);
   if (filters.estado && filters.estado !== 'Todos') parts.push(filters.estado);
+  if (filters.query.trim()) parts.push('búsqueda');
   return parts;
 }
 
@@ -81,6 +96,24 @@ function recentStores() {
     .sort((a, b) => b[1] - a[1])
     .map(([name]) => name)
     .slice(0, 6);
+}
+
+function allStores() {
+  const set = new Set();
+  for (const p of productos) {
+    const t = (p.tienda || '').trim();
+    if (t) set.add(t);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+function syncHideCompradosBtn() {
+  const btn = document.getElementById('btn-hide-comprados');
+  if (!btn) return;
+  btn.classList.toggle('active', filters.hideComprados);
+  btn.textContent = filters.hideComprados
+    ? 'Mostrar comprados'
+    : 'Ocultar comprados';
 }
 
 function syncFilterChrome() {
@@ -109,12 +142,30 @@ function syncFilterChrome() {
   document
     .getElementById('btn-lista-compra')
     ?.classList.toggle('active', filters.listaCompra);
+  syncHideCompradosBtn();
+}
+
+function updateStorageHint() {
+  const el = document.getElementById('storage-hint');
+  if (!el) return;
+  const mb = estimatePhotosMb(productos);
+  if (mb < 25) {
+    el.hidden = true;
+    el.textContent = '';
+    return;
+  }
+  el.hidden = false;
+  el.textContent =
+    mb >= 50
+      ? `Fotos ~${mb.toFixed(0)} MB. Conviene exportar y liberar espacio si el móvil va justo.`
+      : `Fotos ~${mb.toFixed(0)} MB en este dispositivo.`;
 }
 
 async function refresh() {
   productos = await getAllProductos();
   config = await getConfig();
   updateBudget(productos, config);
+  updateStorageHint();
   paint();
 }
 
@@ -138,6 +189,15 @@ function paint() {
     filters.categoria = value;
     paint();
   });
+  renderChips(
+    'tienda',
+    filters.tienda,
+    (value) => {
+      filters.tienda = value;
+      paint();
+    },
+    allStores()
+  );
   renderChips('estado', filters.estado, (value) => {
     filters.estado = value;
     paint();
@@ -168,30 +228,123 @@ function renderEstanciasEditor() {
     .map(
       (name, i) => `
       <div class="estancia-edit-row">
-        <span>${name}</span>
+        <input
+          type="text"
+          class="estancia-name-input"
+          data-estancia-index="${i}"
+          value="${escapeAttr(name)}"
+          autocomplete="off"
+          aria-label="Nombre de estancia"
+        />
         <button type="button" class="btn-text" data-remove-estancia="${i}">Quitar</button>
       </div>`
     )
     .join('');
-  box.querySelectorAll('[data-remove-estancia]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const idx = Number(/** @type {HTMLElement} */ (btn).dataset.removeEstancia);
-      if (draftEstancias.length <= 1) {
-        showToast('Deja al menos una estancia');
-        return;
-      }
-      const removed = draftEstancias[idx];
-      draftEstancias.splice(idx, 1);
-      renderEstanciasEditor();
-      try {
-        await persistEstancias();
-        showToast(`Estancia «${removed}» eliminada`);
-      } catch (err) {
-        console.error(err);
-        showToast('No se pudo eliminar la estancia');
+
+  box.querySelectorAll('.estancia-name-input').forEach((input) => {
+    const el = /** @type {HTMLInputElement} */ (input);
+    el.addEventListener('change', () => {
+      renameEstanciaAt(Number(el.dataset.estanciaIndex), el.value);
+    });
+    el.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        el.blur();
       }
     });
   });
+
+  box.querySelectorAll('[data-remove-estancia]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = Number(/** @type {HTMLElement} */ (btn).dataset.removeEstancia);
+      removeEstanciaAt(idx);
+    });
+  });
+}
+
+function escapeAttr(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function renameEstanciaAt(idx, rawName) {
+  const next = String(rawName || '').trim();
+  const prev = draftEstancias[idx];
+  if (!prev) return;
+  if (!next) {
+    showToast('El nombre no puede estar vacío');
+    renderEstanciasEditor();
+    return;
+  }
+  if (next === prev) return;
+  if (draftEstancias.some((n, i) => i !== idx && n === next)) {
+    showToast('Esa estancia ya existe');
+    renderEstanciasEditor();
+    return;
+  }
+  draftEstancias[idx] = next;
+  renderEstanciasEditor();
+  try {
+    const moved = await reassignEstancia(prev, next);
+    await persistEstancias();
+    await refresh();
+    showToast(
+      moved
+        ? `«${prev}» → «${next}» (${moved} productos)`
+        : `Estancia renombrada a «${next}»`
+    );
+  } catch (err) {
+    console.error(err);
+    draftEstancias[idx] = prev;
+    renderEstanciasEditor();
+    showToast('No se pudo renombrar la estancia');
+  }
+}
+
+async function removeEstanciaAt(idx) {
+  if (draftEstancias.length <= 1) {
+    showToast('Deja al menos una estancia');
+    return;
+  }
+  const removed = draftEstancias[idx];
+  const count = productos.filter((p) => p.estancia === removed).length;
+  const others = draftEstancias.filter((_, i) => i !== idx);
+  const target = others[0];
+
+  if (count > 0) {
+    if (
+      !confirm(
+        `«${removed}» tiene ${count} producto(s). Se moverán a «${target}». ¿Continuar?`
+      )
+    ) {
+      return;
+    }
+  } else if (!confirm(`¿Quitar la estancia «${removed}»?`)) {
+    return;
+  }
+
+  draftEstancias.splice(idx, 1);
+  renderEstanciasEditor();
+  try {
+    if (count > 0) {
+      await reassignEstancia(removed, target);
+    }
+    await persistEstancias();
+    await refresh();
+    showToast(
+      count
+        ? `«${removed}» eliminada · ${count} movidos a «${target}»`
+        : `Estancia «${removed}» eliminada`
+    );
+  } catch (err) {
+    console.error(err);
+    showToast('No se pudo eliminar la estancia');
+    draftEstancias = [...(config.estancias || ESTANCIAS_DEFAULT)];
+    renderEstanciasEditor();
+  }
 }
 
 function settingsFormSnapshot() {
@@ -211,6 +364,7 @@ function openSettings(focusTope = false) {
   renderEstanciasEditor();
   clearImportUi();
   updateLastBackupLabel();
+  updateStorageHint();
   settingsSnapshot = settingsFormSnapshot();
 
   setOverlayOpen('settings-overlay', true, {
@@ -262,7 +416,6 @@ async function addEstanciaFromInput() {
 }
 
 async function saveSettingsFromForm() {
-  // Si hay texto pendiente en el campo, lo incorpora antes de guardar
   consumeNewEstanciaInput();
 
   const topeRaw = /** @type {HTMLInputElement} */ (
@@ -325,6 +478,13 @@ function readFileAsText(file) {
   });
 }
 
+function softMatchAllowed() {
+  const cb = /** @type {HTMLInputElement|null} */ (
+    document.getElementById('import-soft-match')
+  );
+  return Boolean(cb?.checked);
+}
+
 function clearImportUi() {
   pendingImportFile = null;
   pendingBackup = null;
@@ -334,6 +494,12 @@ function clearImportUi() {
   if (meta) meta.textContent = '';
   const preview = document.getElementById('merge-preview');
   if (preview) preview.innerHTML = '';
+  const softLabel = document.getElementById('soft-match-label');
+  if (softLabel) softLabel.hidden = true;
+  const softCb = /** @type {HTMLInputElement|null} */ (
+    document.getElementById('import-soft-match')
+  );
+  if (softCb) softCb.checked = false;
   const input = /** @type {HTMLInputElement|null} */ (
     document.getElementById('import-file')
   );
@@ -349,11 +515,11 @@ function updateLastBackupLabel() {
   const el = document.getElementById('last-backup-label');
   if (!el) return;
   if (!config.lastBackupAt) {
-    el.textContent = 'Último backup: nunca';
+    el.textContent = 'Último export: nunca';
     return;
   }
   const d = new Date(config.lastBackupAt);
-  el.textContent = `Último backup: ${d.toLocaleString('es-ES')}`;
+  el.textContent = `Último export: ${d.toLocaleString('es-ES')}`;
 }
 
 /**
@@ -361,7 +527,9 @@ function updateLastBackupLabel() {
  * @param {'merge'|'replace'} mode
  */
 async function applyBackup(backup, mode) {
-  const stats = await importBackup(backup, mode);
+  const stats = await importBackup(backup, mode, {
+    allowSoftMatch: softMatchAllowed(),
+  });
   await refresh();
   if (mode === 'replace') {
     showToast(`Reemplazado · ${stats.added} productos`);
@@ -373,13 +541,24 @@ async function applyBackup(backup, mode) {
   return stats;
 }
 
+async function refreshMergePreview() {
+  if (!pendingBackup) return;
+  const all = await getAllProductos({ includeDeleted: true });
+  const plan = planMerge(pendingBackup, all, {
+    allowSoftMatch: softMatchAllowed(),
+  });
+  renderMergePreview(plan);
+}
+
 async function prepareBackupPreview(backup, metaText) {
   pendingBackup = backup;
-  const all = await getAllProductos({ includeDeleted: true });
-  const plan = planMerge(backup, all);
   const meta = document.getElementById('import-choice-meta');
   if (meta) meta.textContent = metaText || '';
-  renderMergePreview(plan);
+  const softCb = /** @type {HTMLInputElement|null} */ (
+    document.getElementById('import-soft-match')
+  );
+  if (softCb) softCb.checked = false;
+  await refreshMergePreview();
   const choice = document.getElementById('import-choice');
   if (choice) {
     choice.hidden = false;
@@ -420,9 +599,10 @@ async function autoBackupBeforeReplace() {
   showToast('Backup de seguridad descargado');
 }
 
-function downloadBackup(includePhotos) {
-  const backup = exportBackup(productos, config, { includePhotos });
-  const name = getExportFileName(includePhotos ? 'amueblar-backup' : 'amueblar-sync');
+async function downloadBackup() {
+  const all = await getAllProductos({ includeDeleted: true });
+  const backup = exportBackup(all, config, { includePhotos: true });
+  const name = getExportFileName('amueblar-backup');
   const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -432,80 +612,52 @@ function downloadBackup(includePhotos) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-  markBackupDone();
-  showToast(includePhotos ? `Exportado: ${name}` : `Sync exportado: ${name}`);
+  await markBackupDone();
+  showToast(`Exportado: ${name}`);
 }
 
-async function sendSync() {
-  const all = await getAllProductos({ includeDeleted: true });
-  const backup = exportBackup(all, config, { includePhotos: false });
-  const text = JSON.stringify(backup);
-  const name = getExportFileName('amueblar-sync');
-  const file = new File([text], name, { type: 'application/json' });
-
-  try {
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      await navigator.share({
-        files: [file],
-        title: 'Amueblar sync',
-        text: 'Sync Amueblar. En el otro móvil: Pegar sync o Importar → Fusionar.',
-      });
-      await markBackupDone();
-      showToast('Sync listo para enviar');
-      return;
+async function shareResumen() {
+  const stores = allStores();
+  let tienda = null;
+  if (stores.length > 1) {
+    const picked = window.prompt(
+      `Tienda a compartir (vacío = todas):\n${stores.join(', ')}`,
+      ''
+    );
+    if (picked == null) return;
+    const trimmed = picked.trim();
+    if (trimmed) {
+      const found = stores.find(
+        (s) => s.toLowerCase() === trimmed.toLowerCase()
+      );
+      if (!found) {
+        showToast('Tienda no encontrada');
+        return;
+      }
+      tienda = found;
     }
-  } catch (err) {
-    if (/** @type {any} */ (err)?.name === 'AbortError') return;
+  } else if (stores.length === 1) {
+    tienda = null;
   }
 
-  try {
-    if (navigator.share) {
-      await navigator.share({
-        title: 'Amueblar sync',
-        text: `Amueblar sync — Pegar sync en el otro móvil:\n\n${text}`,
-      });
-      await markBackupDone();
-      showToast('Sync compartido');
-      return;
-    }
-  } catch (err) {
-    if (/** @type {any} */ (err)?.name === 'AbortError') return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(text);
-    await markBackupDone();
-    showToast('Sync copiado. Pégalo en el otro móvil');
-  } catch {
-    downloadBackup(false);
-  }
-}
-
-async function pasteSync() {
-  try {
-    let text = '';
+  const text = buildShareText(productos, config, { tienda });
+  if (navigator.share) {
     try {
-      text = await navigator.clipboard.readText();
-    } catch {
-      text =
-        window.prompt('Pega aquí el texto del sync que te han enviado:') || '';
-    }
-    if (!text.trim()) {
-      showToast('No hay nada que pegar');
+      await navigator.share({ title: 'Amueblar', text });
       return;
+    } catch {
+      /* fall through */
     }
-    const backup = parseBackupPayload(text);
-    if (!document.getElementById('settings-overlay')?.classList.contains('open')) {
-      openSettings();
-    }
-    await prepareBackupPreview(backup, 'Sync pegado desde el portapapeles');
-  } catch (err) {
-    console.error(err);
-    showToast(/** @type {Error} */ (err)?.message || 'No se pudo leer el sync');
   }
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
 document.getElementById('clear-filters')?.addEventListener('click', clearFilters);
+
+document.getElementById('search-input')?.addEventListener('input', (ev) => {
+  filters.query = /** @type {HTMLInputElement} */ (ev.target).value;
+  paint();
+});
 
 document.getElementById('btn-more-filters')?.addEventListener('click', () => {
   filtersExpanded = !filtersExpanded;
@@ -522,7 +674,14 @@ document.getElementById('btn-lista-compra')?.addEventListener('click', () => {
   if (filters.listaCompra) {
     filters.estado = 'Todos';
     showToast('Lista por tienda');
+  } else {
+    filters.hideComprados = false;
   }
+  paint();
+});
+
+document.getElementById('btn-hide-comprados')?.addEventListener('click', () => {
+  filters.hideComprados = !filters.hideComprados;
   paint();
 });
 
@@ -564,10 +723,9 @@ document.getElementById('new-estancia')?.addEventListener('keydown', (ev) => {
   }
 });
 
-document.getElementById('btn-sync-send')?.addEventListener('click', () => sendSync());
-document.getElementById('btn-sync-paste')?.addEventListener('click', () => pasteSync());
-document.getElementById('btn-export-sync')?.addEventListener('click', () => downloadBackup(false));
-document.getElementById('btn-export')?.addEventListener('click', () => downloadBackup(true));
+document.getElementById('btn-export')?.addEventListener('click', () => {
+  downloadBackup();
+});
 
 document.getElementById('btn-import')?.addEventListener('click', () => {
   const input = /** @type {HTMLInputElement|null} */ (
@@ -598,6 +756,10 @@ document.getElementById('import-file')?.addEventListener('change', async (ev) =>
   }
 });
 
+document.getElementById('import-soft-match')?.addEventListener('change', () => {
+  refreshMergePreview();
+});
+
 document.getElementById('btn-import-merge')?.addEventListener('click', () => {
   runImport('merge');
 });
@@ -614,21 +776,16 @@ document.getElementById('btn-import-cancel')?.addEventListener('click', () => {
   clearImportUi();
 });
 
-document.getElementById('btn-share')?.addEventListener('click', async () => {
-  const text = buildShareText(productos, config);
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: 'Amueblar', text });
-      return;
-    } catch {
-      /* fall through */
-    }
-  }
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+document.getElementById('btn-share')?.addEventListener('click', () => {
+  shareResumen();
 });
 
 document.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Escape') return;
+  if (isLightboxOpen()) {
+    closeLightbox();
+    return;
+  }
   for (const id of ['settings-overlay', 'resumen-overlay']) {
     const el = document.getElementById(id);
     if (el?.classList.contains('open')) {
@@ -642,6 +799,21 @@ document.addEventListener('keydown', (ev) => {
 async function boot() {
   await openDb();
   await refresh();
+
+  const mb = estimatePhotosMb(productos);
+  if (mb >= 40) {
+    try {
+      const key = 'amueblar-storage-warn';
+      if (sessionStorage.getItem(key) !== '1') {
+        sessionStorage.setItem(key, '1');
+        showToast(`Fotos ~${mb.toFixed(0)} MB. Exporta si el espacio apura.`, {
+          duration: 4200,
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 
   if ('serviceWorker' in navigator) {
     try {

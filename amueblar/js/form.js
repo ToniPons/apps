@@ -19,6 +19,8 @@ import {
   formatEuro,
   linkifyText,
   openLightbox,
+  isLightboxOpen,
+  closeLightbox,
 } from './ui.js';
 
 const QUICK_MODE_KEY = 'amueblar-quick-mode';
@@ -178,6 +180,11 @@ export function initForm(callbacks) {
       ESTADOS,
       'Candidato'
     );
+    fillSelect(
+      /** @type {HTMLSelectElement} */ (document.getElementById('field-categoria')),
+      CATEGORIAS,
+      'Mueble'
+    );
     fillSelect(estanciaSelect, estancias());
     /** @type {HTMLInputElement} */ (document.getElementById('field-cantidad')).value =
       '1';
@@ -196,6 +203,16 @@ export function initForm(callbacks) {
     const base = estancias();
     if (current && !base.includes(current)) return [...base, current];
     return base;
+  }
+
+  function estadoOptions(current) {
+    if (current && !ESTADOS.includes(current)) return [...ESTADOS, current];
+    return ESTADOS;
+  }
+
+  function categoriaOptions(current) {
+    if (current && !CATEGORIAS.includes(current)) return [...CATEGORIAS, current];
+    return CATEGORIAS;
   }
 
   /**
@@ -223,12 +240,12 @@ export function initForm(callbacks) {
       fillSelect(estanciaSelect, estanciaOptions(producto.estancia), producto.estancia);
       fillSelect(
         /** @type {HTMLSelectElement} */ (document.getElementById('field-categoria')),
-        CATEGORIAS,
+        categoriaOptions(producto.categoria),
         producto.categoria
       );
       fillSelect(
         /** @type {HTMLSelectElement} */ (document.getElementById('field-estado')),
-        ESTADOS,
+        estadoOptions(producto.estado),
         producto.estado
       );
       fotoMueble = producto.fotoMueble || null;
@@ -301,10 +318,12 @@ export function initForm(callbacks) {
       <div class="form-group">
         <label for="detail-estado">Estado</label>
         <select id="detail-estado" class="detail-estado">
-          ${ESTADOS.map(
-            (e) =>
-              `<option value="${e}" ${e === producto.estado ? 'selected' : ''}>${e}</option>`
-          ).join('')}
+          ${estadoOptions(producto.estado)
+            .map(
+              (e) =>
+                `<option value="${e}" ${e === producto.estado ? 'selected' : ''}>${e}</option>`
+            )
+            .join('')}
         </select>
       </div>
       <div class="btn-row sticky-actions">
@@ -559,6 +578,10 @@ export function initForm(callbacks) {
 
   document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape') return;
+    if (isLightboxOpen()) {
+      closeLightbox();
+      return;
+    }
     if (overlay?.classList.contains('open')) tryCloseForm();
     else if (detailOverlay?.classList.contains('open')) closeDetail();
   });
