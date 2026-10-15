@@ -52,7 +52,8 @@
         color: var(--ink);
         background: var(--night);
         -webkit-font-smoothing: antialiased;
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
       }
 
       button {
@@ -296,6 +297,61 @@
         margin-inline: auto;
       }
 
+      .wish-card {
+        width: min(100%, 22rem);
+        margin: 0.35rem 0 1.15rem;
+        padding: 0.95rem 1rem 1.05rem;
+        border-radius: 18px;
+        text-align: left;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(247, 241, 232, 0.16);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+      }
+
+      .wish-card .eyebrow {
+        margin-bottom: 0.4rem;
+      }
+
+      .wish-text {
+        margin: 0;
+        min-height: 3.2em;
+        font-family: var(--font-display);
+        font-size: 1.2rem;
+        font-weight: 650;
+        line-height: 1.3;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+
+      .wish-text.spinning {
+        animation: wish-flicker 0.12s steps(2) infinite;
+        color: var(--gold);
+      }
+
+      .wish-text.landed {
+        animation: wish-land 0.45s ease-out both;
+      }
+
+      .btn-wish {
+        margin-top: 0.75rem;
+        width: 100%;
+        background: rgba(240, 195, 90, 0.18);
+        color: var(--gold);
+        border: 1px solid rgba(240, 195, 90, 0.35);
+      }
+
+      .btn-wish:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+
+      .reveal-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: min(100%, 22rem);
+      }
+
       .cake {
         font-size: 3.5rem;
         line-height: 1;
@@ -314,38 +370,35 @@
       }
 
       .cat {
-        width: 4.4rem;
+        width: 5rem;
         height: auto;
+        overflow: visible;
         filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.28));
         animation: bob 2.4s ease-in-out infinite;
       }
 
-      .cat.orange {
-        animation-delay: 0.15s;
-      }
-
-      .cat.white {
-        animation-delay: 0.55s;
-        width: 4rem;
+      .cat:nth-child(2) {
+        animation-delay: 0.45s;
+        width: 4.6rem;
       }
 
       .cats-corner {
         position: absolute;
         right: 0.35rem;
-        bottom: 0.2rem;
+        bottom: 0.15rem;
         display: flex;
         align-items: flex-end;
-        gap: 0.35rem;
+        gap: 0.2rem;
         pointer-events: none;
         z-index: 2;
       }
 
       .cats-corner .cat {
-        width: 3.1rem;
+        width: 3.35rem;
       }
 
-      .cats-corner .cat.white {
-        width: 2.85rem;
+      .cats-corner .cat:nth-child(2) {
+        width: 3.1rem;
       }
 
       #confetti {
@@ -406,6 +459,26 @@
         }
       }
 
+      @keyframes wish-flicker {
+        from {
+          opacity: 0.45;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes wish-land {
+        from {
+          opacity: 0.2;
+          transform: translateY(8px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .sky,
         .balloon-body,
@@ -422,6 +495,64 @@
     </style>
   </head>
   <body>
+    <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" aria-hidden="true" focusable="false">
+      <defs>
+        <!-- Gatito 1: blanco con manchas naranjas -->
+        <symbol id="cat-mix-a" viewBox="0 0 96 88">
+          <ellipse cx="48" cy="58" rx="30" ry="22" fill="#fff8f0"/>
+          <ellipse cx="30" cy="52" rx="12" ry="14" fill="#f4a24c"/>
+          <ellipse cx="66" cy="60" rx="11" ry="12" fill="#e8842a"/>
+          <circle cx="48" cy="34" r="22" fill="#fff8f0"/>
+          <path d="M28 22l-10-18 20 10z" fill="#f4a24c"/>
+          <path d="M68 22l10-18-20 10z" fill="#fff8f0"/>
+          <path d="M28 22l-6-12 14 8z" fill="#ffb7c5"/>
+          <path d="M68 22l6-12-14 8z" fill="#ffb7c5"/>
+          <ellipse cx="36" cy="50" rx="10" ry="8" fill="#f4a24c"/>
+          <circle cx="39" cy="33" r="5.2" fill="#2a1c28"/>
+          <circle cx="57" cy="33" r="5.2" fill="#2a1c28"/>
+          <circle cx="40.7" cy="31.4" r="1.7" fill="#fff"/>
+          <circle cx="58.7" cy="31.4" r="1.7" fill="#fff"/>
+          <circle cx="34" cy="40" r="3.2" fill="#ff9aaf" opacity="0.85"/>
+          <circle cx="62" cy="40" r="3.2" fill="#ff9aaf" opacity="0.85"/>
+          <ellipse cx="48" cy="41" rx="3.6" ry="2.5" fill="#ff8a6b"/>
+          <path d="M48 43.5v4.5" stroke="#2a1c28" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M44 49c2.2 2.4 5.8 2.4 8 0" fill="none" stroke="#2a1c28" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M32 39h-11M32 43h-10M64 39h11M64 43h10" stroke="#2a1c28" stroke-width="1.3" stroke-linecap="round"/>
+          <ellipse cx="32" cy="76" rx="9" ry="5" fill="#fff8f0"/>
+          <ellipse cx="64" cy="76" rx="9" ry="5" fill="#f4a24c"/>
+          <path d="M74 54c10 3 14 14 8 18" fill="none" stroke="#fff8f0" stroke-width="6" stroke-linecap="round"/>
+          <path d="M74 54c10 3 14 14 8 18" fill="none" stroke="#e8842a" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 7"/>
+          <circle cx="72" cy="18" r="2.2" fill="#f0c35a" opacity="0.9"/>
+        </symbol>
+        <!-- Gatito 2: naranja con pecho/hocico blancos -->
+        <symbol id="cat-mix-b" viewBox="0 0 96 88">
+          <ellipse cx="48" cy="58" rx="30" ry="22" fill="#f4a24c"/>
+          <ellipse cx="48" cy="62" rx="14" ry="12" fill="#fff8f0"/>
+          <ellipse cx="28" cy="56" rx="10" ry="11" fill="#fff8f0"/>
+          <circle cx="48" cy="34" r="22" fill="#f4a24c"/>
+          <ellipse cx="48" cy="40" rx="11" ry="10" fill="#fff8f0"/>
+          <path d="M28 22l-10-18 20 10z" fill="#fff8f0"/>
+          <path d="M68 22l10-18-20 10z" fill="#e8842a"/>
+          <path d="M28 22l-6-12 14 8z" fill="#ffb7c5"/>
+          <path d="M68 22l6-12-14 8z" fill="#ffb7c5"/>
+          <circle cx="39" cy="33" r="5.2" fill="#2a1c28"/>
+          <circle cx="57" cy="33" r="5.2" fill="#2a1c28"/>
+          <circle cx="40.7" cy="31.4" r="1.7" fill="#fff"/>
+          <circle cx="58.7" cy="31.4" r="1.7" fill="#fff"/>
+          <circle cx="34" cy="40" r="3.2" fill="#ff9aaf" opacity="0.9"/>
+          <circle cx="62" cy="40" r="3.2" fill="#ff9aaf" opacity="0.9"/>
+          <ellipse cx="48" cy="41" rx="3.6" ry="2.5" fill="#ff8a6b"/>
+          <path d="M48 43.5v4.5" stroke="#2a1c28" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M44 49c2.2 2.4 5.8 2.4 8 0" fill="none" stroke="#2a1c28" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M32 39h-11M32 43h-10M64 39h11M64 43h10" stroke="#2a1c28" stroke-width="1.3" stroke-linecap="round"/>
+          <ellipse cx="32" cy="76" rx="9" ry="5" fill="#fff8f0"/>
+          <ellipse cx="64" cy="76" rx="9" ry="5" fill="#e8842a"/>
+          <path d="M74 54c10 3 14 14 8 18" fill="none" stroke="#f4a24c" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="24" cy="20" r="2" fill="#ff6b8a" opacity="0.85"/>
+        </symbol>
+      </defs>
+    </svg>
+
     <div class="sky" aria-hidden="true"></div>
     <canvas id="confetti" aria-hidden="true"></canvas>
 
@@ -431,38 +562,8 @@
       <section class="screen active" id="screen-home" aria-label="Inicio">
         <div class="hero">
           <div class="cats" aria-hidden="true">
-            <svg class="cat orange" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f1953a"/>
-              <circle cx="40" cy="30" r="18" fill="#f4a24c"/>
-              <path d="M22 20l-8-14 16 8z" fill="#e8842a"/>
-              <path d="M58 20l8-14-16 8z" fill="#e8842a"/>
-              <path d="M22 20l-5-10 13 6z" fill="#ffc48a"/>
-              <path d="M58 20l5-10-13 6z" fill="#ffc48a"/>
-              <circle cx="33" cy="30" r="2.4" fill="#2a1c14"/>
-              <circle cx="47" cy="30" r="2.4" fill="#2a1c14"/>
-              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff8a6b"/>
-              <path d="M40 38v4" stroke="#2a1c14" stroke-width="1.4" stroke-linecap="round"/>
-              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#2a1c14" stroke-width="1.2" stroke-linecap="round"/>
-              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#e8842a"/>
-              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#e8842a"/>
-              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f1953a" stroke-width="5" stroke-linecap="round"/>
-            </svg>
-            <svg class="cat white" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f7f3ec"/>
-              <circle cx="40" cy="30" r="18" fill="#fffdf8"/>
-              <path d="M22 20l-8-14 16 8z" fill="#efe6d8"/>
-              <path d="M58 20l8-14-16 8z" fill="#efe6d8"/>
-              <path d="M22 20l-5-10 13 6z" fill="#fff"/>
-              <path d="M58 20l5-10-13 6z" fill="#fff"/>
-              <circle cx="33" cy="30" r="2.4" fill="#3a2a4a"/>
-              <circle cx="47" cy="30" r="2.4" fill="#3a2a4a"/>
-              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff9aa8"/>
-              <path d="M40 38v4" stroke="#3a2a4a" stroke-width="1.4" stroke-linecap="round"/>
-              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#3a2a4a" stroke-width="1.2" stroke-linecap="round"/>
-              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#efe6d8"/>
-              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#efe6d8"/>
-              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f7f3ec" stroke-width="5" stroke-linecap="round"/>
-            </svg>
+            <svg class="cat" viewBox="0 0 96 88"><use href="#cat-mix-a"/></svg>
+            <svg class="cat" viewBox="0 0 96 88"><use href="#cat-mix-b"/></svg>
           </div>
           <p class="eyebrow">Solo para ti</p>
           <h1>Mirggi</h1>
@@ -483,38 +584,8 @@
         </div>
         <div class="arena" id="arena" role="application" aria-label="Arena de globos">
           <div class="cats-corner" aria-hidden="true">
-            <svg class="cat orange" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f1953a"/>
-              <circle cx="40" cy="30" r="18" fill="#f4a24c"/>
-              <path d="M22 20l-8-14 16 8z" fill="#e8842a"/>
-              <path d="M58 20l8-14-16 8z" fill="#e8842a"/>
-              <path d="M22 20l-5-10 13 6z" fill="#ffc48a"/>
-              <path d="M58 20l5-10-13 6z" fill="#ffc48a"/>
-              <circle cx="33" cy="30" r="2.4" fill="#2a1c14"/>
-              <circle cx="47" cy="30" r="2.4" fill="#2a1c14"/>
-              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff8a6b"/>
-              <path d="M40 38v4" stroke="#2a1c14" stroke-width="1.4" stroke-linecap="round"/>
-              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#2a1c14" stroke-width="1.2" stroke-linecap="round"/>
-              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#e8842a"/>
-              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#e8842a"/>
-              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f1953a" stroke-width="5" stroke-linecap="round"/>
-            </svg>
-            <svg class="cat white" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f7f3ec"/>
-              <circle cx="40" cy="30" r="18" fill="#fffdf8"/>
-              <path d="M22 20l-8-14 16 8z" fill="#efe6d8"/>
-              <path d="M58 20l8-14-16 8z" fill="#efe6d8"/>
-              <path d="M22 20l-5-10 13 6z" fill="#fff"/>
-              <path d="M58 20l5-10-13 6z" fill="#fff"/>
-              <circle cx="33" cy="30" r="2.4" fill="#3a2a4a"/>
-              <circle cx="47" cy="30" r="2.4" fill="#3a2a4a"/>
-              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff9aa8"/>
-              <path d="M40 38v4" stroke="#3a2a4a" stroke-width="1.4" stroke-linecap="round"/>
-              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#3a2a4a" stroke-width="1.2" stroke-linecap="round"/>
-              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#efe6d8"/>
-              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#efe6d8"/>
-              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f7f3ec" stroke-width="5" stroke-linecap="round"/>
-            </svg>
+            <svg class="cat" viewBox="0 0 96 88"><use href="#cat-mix-a"/></svg>
+            <svg class="cat" viewBox="0 0 96 88"><use href="#cat-mix-b"/></svg>
           </div>
         </div>
       </section>
@@ -522,38 +593,8 @@
       <section class="screen" id="screen-reveal" aria-label="Sorpresa">
         <div class="reveal">
           <div class="cats" aria-hidden="true">
-            <svg class="cat orange" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f1953a"/>
-              <circle cx="40" cy="30" r="18" fill="#f4a24c"/>
-              <path d="M22 20l-8-14 16 8z" fill="#e8842a"/>
-              <path d="M58 20l8-14-16 8z" fill="#e8842a"/>
-              <path d="M22 20l-5-10 13 6z" fill="#ffc48a"/>
-              <path d="M58 20l5-10-13 6z" fill="#ffc48a"/>
-              <circle cx="33" cy="30" r="2.4" fill="#2a1c14"/>
-              <circle cx="47" cy="30" r="2.4" fill="#2a1c14"/>
-              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff8a6b"/>
-              <path d="M40 38v4" stroke="#2a1c14" stroke-width="1.4" stroke-linecap="round"/>
-              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#2a1c14" stroke-width="1.2" stroke-linecap="round"/>
-              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#e8842a"/>
-              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#e8842a"/>
-              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f1953a" stroke-width="5" stroke-linecap="round"/>
-            </svg>
-            <svg class="cat white" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f7f3ec"/>
-              <circle cx="40" cy="30" r="18" fill="#fffdf8"/>
-              <path d="M22 20l-8-14 16 8z" fill="#efe6d8"/>
-              <path d="M58 20l8-14-16 8z" fill="#efe6d8"/>
-              <path d="M22 20l-5-10 13 6z" fill="#fff"/>
-              <path d="M58 20l5-10-13 6z" fill="#fff"/>
-              <circle cx="33" cy="30" r="2.4" fill="#3a2a4a"/>
-              <circle cx="47" cy="30" r="2.4" fill="#3a2a4a"/>
-              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff9aa8"/>
-              <path d="M40 38v4" stroke="#3a2a4a" stroke-width="1.4" stroke-linecap="round"/>
-              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#3a2a4a" stroke-width="1.2" stroke-linecap="round"/>
-              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#efe6d8"/>
-              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#efe6d8"/>
-              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f7f3ec" stroke-width="5" stroke-linecap="round"/>
-            </svg>
+            <svg class="cat" viewBox="0 0 96 88"><use href="#cat-mix-a"/></svg>
+            <svg class="cat" viewBox="0 0 96 88"><use href="#cat-mix-b"/></svg>
           </div>
           <div class="cake" aria-hidden="true">🎂</div>
           <p class="eyebrow">Lo conseguiste</p>
@@ -562,10 +603,21 @@
             Que este año te traiga risas fáciles, planes bonitos y todo lo que
             te haga brillar. Te quiero muchísimo.
           </p>
-          <button type="button" class="btn btn-primary" id="btn-again">
-            Otra ronda
-          </button>
-          <button type="button" class="btn-ghost" id="btn-home">Volver al inicio</button>
+
+          <div class="wish-card" aria-live="polite">
+            <p class="eyebrow">Deseo al azar</p>
+            <p class="wish-text" id="wish-text">¿Qué te toca hoy…?</p>
+            <button type="button" class="btn btn-wish" id="btn-wish">
+              Otra vez
+            </button>
+          </div>
+
+          <div class="reveal-actions">
+            <button type="button" class="btn btn-primary" id="btn-again">
+              Otra ronda
+            </button>
+            <button type="button" class="btn-ghost" id="btn-home">Volver al inicio</button>
+          </div>
         </div>
       </section>
     </div>
@@ -574,6 +626,32 @@
       const NEED = 10;
       const COLORS = ["#ff6b8a", "#f0c35a", "#6ee7b7", "#8bb7ff", "#ff9e6b", "#d8a7ff"];
       const EMOJIS = ["🎈", "✨", "💖", "⭐", "🎉", "🌸", "🐱", "🐈"];
+      const WISHES = [
+        "Tú eliges la peli de esta noche (sin veto).",
+        "Yo lavo los platos los próximos 3 días.",
+        "Desayuno juntos sin móviles 20 minutos.",
+        "Masaje de pies de 10 minutos, a domicilio en el sofá.",
+        "Tú mandas el mando toda la noche.",
+        "Abrazo de oso de 2 minutos: sin soltar, sin excusas.",
+        "Yo hago la cama toda la semana.",
+        "Día de pijama oficial: cero planes de salir.",
+        "Yo saco la basura 5 días seguidos.",
+        "Tú eliges qué cenamos en casa.",
+        "Nota de amor en el espejo del baño mañana.",
+        "Baile ridículo a tu petición (sí, delante de los gatitos).",
+        "20 minutos de mimar gatitos juntos, agenda bloqueada.",
+        "Tú ganas la próxima discusión tonta.",
+        "Yo te preparo el café/té una semana.",
+        "Paseo al atardecer sin prisa y sin rumbo.",
+        "Sesión de memes en el sofá hasta que duela la risa.",
+        "Yo friego el fregadero hasta que brille.",
+        "Dúo de karaoke casero: tú eliges la canción.",
+        "Media hora de silencio cómodo juntos (vale no hablar).",
+        "Tú eliges la playlist del finde.",
+        "Yo cuelgo la colada… ¡y la recojo!",
+        "Partida de lo que quieras: tú eliges juego y reglas.",
+        "Cumplido espontáneo en voz alta, tres veces hoy.",
+      ];
 
       const screens = {
         home: document.getElementById("screen-home"),
@@ -592,11 +670,49 @@
       let confettiBits = [];
       let confettiRaf = 0;
       let specialQueued = false;
+      let wishTimer = 0;
+      let lastWish = -1;
+      let wishSpinning = false;
+
+      const wishText = document.getElementById("wish-text");
+      const wishBtn = document.getElementById("btn-wish");
 
       function show(name) {
         Object.entries(screens).forEach(([key, el]) => {
           el.classList.toggle("active", key === name);
         });
+      }
+
+      function pickWishIndex() {
+        if (WISHES.length < 2) return 0;
+        let next = Math.floor(Math.random() * WISHES.length);
+        if (next === lastWish) next = (next + 1) % WISHES.length;
+        return next;
+      }
+
+      function spinWish() {
+        if (wishSpinning) return;
+        wishSpinning = true;
+        wishBtn.disabled = true;
+        wishText.classList.remove("landed");
+        wishText.classList.add("spinning");
+
+        let ticks = 0;
+        const total = 14 + Math.floor(Math.random() * 6);
+        window.clearInterval(wishTimer);
+        wishTimer = window.setInterval(() => {
+          const i = pickWishIndex();
+          wishText.textContent = WISHES[i];
+          ticks += 1;
+          if (ticks >= total) {
+            window.clearInterval(wishTimer);
+            lastWish = i;
+            wishText.classList.remove("spinning");
+            wishText.classList.add("landed");
+            wishSpinning = false;
+            wishBtn.disabled = false;
+          }
+        }, 70);
       }
 
       function updateScore() {
@@ -677,6 +793,7 @@
         window.setTimeout(() => {
           show("reveal");
           startConfetti();
+          spinWish();
         }, 350);
       }
 
@@ -781,10 +898,14 @@
 
       document.getElementById("btn-start").addEventListener("click", startGame);
       document.getElementById("btn-again").addEventListener("click", startGame);
+      wishBtn.addEventListener("click", spinWish);
       document.getElementById("btn-home").addEventListener("click", () => {
         playing = false;
         won = false;
         window.clearInterval(spawnTimer);
+        window.clearInterval(wishTimer);
+        wishSpinning = false;
+        wishBtn.disabled = false;
         clearArena();
         stopConfetti();
         show("home");
