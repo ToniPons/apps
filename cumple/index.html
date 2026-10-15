@@ -1055,9 +1055,12 @@
         }
       }
 
-      function extinguishOne() {
+      function extinguishOne(target) {
         if (candlesDone || blowCooldown) return;
-        const next = candleBtns.find((btn) => !btn.classList.contains("out"));
+        const next =
+          target && !target.classList.contains("out")
+            ? target
+            : candleBtns.find((btn) => !btn.classList.contains("out"));
         if (!next) return;
         blowCooldown = true;
         next.classList.add("out");
