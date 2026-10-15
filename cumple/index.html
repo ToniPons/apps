@@ -360,6 +360,126 @@
         animation: bob 2s ease-in-out infinite;
       }
 
+      .blow-stage {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        animation: rise 0.55s ease-out both;
+        gap: 0.35rem;
+      }
+
+      .blow-stage .lead {
+        margin: 0.5rem 0 1rem;
+      }
+
+      .birthday-cake {
+        position: relative;
+        width: 11.5rem;
+        margin: 0.4rem 0 1rem;
+        filter: drop-shadow(0 12px 24px rgba(240, 195, 90, 0.28));
+      }
+
+      .candles {
+        display: flex;
+        justify-content: center;
+        gap: 1.15rem;
+        margin-bottom: -0.15rem;
+        position: relative;
+        z-index: 2;
+      }
+
+      .candle {
+        width: 2.4rem;
+        padding: 0;
+        background: transparent;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.12rem;
+      }
+
+      .flame {
+        width: 0.72rem;
+        height: 1.05rem;
+        border-radius: 50% 50% 45% 45%;
+        background: radial-gradient(circle at 40% 30%, #fff6c8, #ffb347 45%, #ff6b3d 78%);
+        box-shadow: 0 0 12px rgba(255, 180, 70, 0.85);
+        animation: flicker 0.35s ease-in-out infinite alternate;
+        transform-origin: 50% 100%;
+      }
+
+      .candle.out .flame {
+        animation: none;
+        opacity: 0;
+        transform: scale(0);
+        transition: opacity 0.25s, transform 0.25s;
+      }
+
+      .smoke {
+        width: 0.2rem;
+        height: 0;
+        border-radius: 99px;
+        background: rgba(247, 241, 232, 0.55);
+        opacity: 0;
+      }
+
+      .candle.out .smoke {
+        height: 1.1rem;
+        opacity: 0.7;
+        animation: smoke-up 0.9s ease-out forwards;
+      }
+
+      .wick {
+        width: 0.14rem;
+        height: 0.35rem;
+        background: #3a2a20;
+        border-radius: 99px;
+      }
+
+      .stick {
+        width: 0.55rem;
+        height: 1.55rem;
+        border-radius: 4px;
+        background: linear-gradient(180deg, #fff4d4, #f0c35a);
+        box-shadow: inset -2px 0 0 rgba(255, 255, 255, 0.35);
+      }
+
+      .cake-body {
+        border-radius: 14px 14px 18px 18px;
+        overflow: hidden;
+        border: 1px solid rgba(247, 241, 232, 0.18);
+      }
+
+      .cake-frost {
+        height: 1.35rem;
+        background: linear-gradient(180deg, #ffe3ec, #ff9eb5);
+      }
+
+      .cake-layer {
+        height: 2.4rem;
+        background:
+          radial-gradient(circle at 20% 40%, rgba(255, 255, 255, 0.35) 0 0.2rem, transparent 0.22rem),
+          radial-gradient(circle at 50% 55%, rgba(255, 255, 255, 0.28) 0 0.18rem, transparent 0.2rem),
+          radial-gradient(circle at 78% 35%, rgba(255, 255, 255, 0.3) 0 0.16rem, transparent 0.18rem),
+          linear-gradient(180deg, #6b3f2a, #4a2a1a);
+      }
+
+      .cake-base {
+        height: 0.85rem;
+        background: linear-gradient(180deg, #f0c35a, #d4a63d);
+      }
+
+      .mic-hint {
+        margin: 0.15rem 0 0.85rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--ink-soft);
+        min-height: 1.2em;
+      }
+
       .cats {
         display: flex;
         align-items: flex-end;
@@ -479,12 +599,34 @@
         }
       }
 
+      @keyframes flicker {
+        from {
+          transform: scaleY(0.92) rotate(-6deg);
+        }
+        to {
+          transform: scaleY(1.08) rotate(7deg);
+        }
+      }
+
+      @keyframes smoke-up {
+        from {
+          opacity: 0.75;
+          transform: translateY(0) scaleX(1);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-18px) scaleX(1.8);
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .sky,
         .balloon-body,
         .cake,
         .hero,
-        .reveal {
+        .reveal,
+        .blow-stage,
+        .flame {
           animation: none !important;
         }
 
@@ -590,6 +732,51 @@
         </div>
       </section>
 
+      <section class="screen" id="screen-candles" aria-label="Soplar velas">
+        <div class="blow-stage">
+          <div class="cats" aria-hidden="true">
+            <svg class="cat" viewBox="0 0 96 88"><use href="#cat-mix-a"/></svg>
+            <svg class="cat" viewBox="0 0 96 88"><use href="#cat-mix-b"/></svg>
+          </div>
+          <p class="eyebrow">Último paso</p>
+          <h1>Pide un deseo</h1>
+          <p class="lead">Sopla las velas… o tócalas si el micro no colabora.</p>
+
+          <div class="birthday-cake" id="birthday-cake">
+            <div class="candles">
+              <button type="button" class="candle" data-candle="0" aria-label="Vela 1">
+                <span class="flame" aria-hidden="true"></span>
+                <span class="smoke" aria-hidden="true"></span>
+                <span class="wick" aria-hidden="true"></span>
+                <span class="stick" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="candle" data-candle="1" aria-label="Vela 2">
+                <span class="flame" aria-hidden="true"></span>
+                <span class="smoke" aria-hidden="true"></span>
+                <span class="wick" aria-hidden="true"></span>
+                <span class="stick" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="candle" data-candle="2" aria-label="Vela 3">
+                <span class="flame" aria-hidden="true"></span>
+                <span class="smoke" aria-hidden="true"></span>
+                <span class="wick" aria-hidden="true"></span>
+                <span class="stick" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div class="cake-body" aria-hidden="true">
+              <div class="cake-frost"></div>
+              <div class="cake-layer"></div>
+              <div class="cake-base"></div>
+            </div>
+          </div>
+
+          <p class="mic-hint" id="mic-hint">Preparando el micrófono…</p>
+          <button type="button" class="btn btn-primary" id="btn-blow">
+            Soplar
+          </button>
+        </div>
+      </section>
+
       <section class="screen" id="screen-reveal" aria-label="Sorpresa">
         <div class="reveal">
           <div class="cats" aria-hidden="true">
@@ -656,12 +843,15 @@
       const screens = {
         home: document.getElementById("screen-home"),
         play: document.getElementById("screen-play"),
+        candles: document.getElementById("screen-candles"),
         reveal: document.getElementById("screen-reveal"),
       };
       const arena = document.getElementById("arena");
       const scoreEl = document.getElementById("score");
       const canvas = document.getElementById("confetti");
       const ctx = canvas.getContext("2d");
+      const micHint = document.getElementById("mic-hint");
+      const candleBtns = [...document.querySelectorAll(".candle")];
 
       let popped = 0;
       let spawnTimer = 0;
@@ -673,6 +863,14 @@
       let wishTimer = 0;
       let lastWish = -1;
       let wishSpinning = false;
+      let litCount = 3;
+      let blowCooldown = false;
+      let candlesDone = false;
+      /** @type {MediaStream|null} */
+      let micStream = null;
+      /** @type {AudioContext|null} */
+      let micAudio = null;
+      let micRaf = 0;
 
       const wishText = document.getElementById("wish-text");
       const wishBtn = document.getElementById("btn-wish");
@@ -791,10 +989,113 @@
         playing = false;
         window.clearInterval(spawnTimer);
         window.setTimeout(() => {
+          startCandles();
+        }, 350);
+      }
+
+      function resetCandles() {
+        litCount = 3;
+        candlesDone = false;
+        blowCooldown = false;
+        candleBtns.forEach((btn) => {
+          btn.classList.remove("out");
+          btn.disabled = false;
+        });
+      }
+
+      function stopMic() {
+        if (micRaf) {
+          cancelAnimationFrame(micRaf);
+          micRaf = 0;
+        }
+        if (micStream) {
+          micStream.getTracks().forEach((t) => t.stop());
+          micStream = null;
+        }
+        if (micAudio) {
+          micAudio.close().catch(() => {});
+          micAudio = null;
+        }
+      }
+
+      async function startMic() {
+        stopMic();
+        if (!navigator.mediaDevices?.getUserMedia) {
+          micHint.textContent = "Sin micrófono: toca las velas o pulsa Soplar.";
+          return;
+        }
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true },
+          });
+          micAudio = new (window.AudioContext || window.webkitAudioContext)();
+          if (micAudio.state === "suspended") await micAudio.resume();
+          const source = micAudio.createMediaStreamSource(micStream);
+          const analyser = micAudio.createAnalyser();
+          analyser.fftSize = 512;
+          source.connect(analyser);
+          const data = new Uint8Array(analyser.fftSize);
+          micHint.textContent = "Mic listo: ¡sopla cerca del móvil!";
+
+          const listen = () => {
+            micRaf = requestAnimationFrame(listen);
+            if (candlesDone) return;
+            analyser.getByteTimeDomainData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) {
+              const v = (data[i] - 128) / 128;
+              sum += v * v;
+            }
+            const rms = Math.sqrt(sum / data.length);
+            if (rms > 0.12) extinguishOne();
+          };
+          listen();
+        } catch {
+          micHint.textContent = "Sin permiso de micro: toca las velas o pulsa Soplar.";
+        }
+      }
+
+      function extinguishOne() {
+        if (candlesDone || blowCooldown) return;
+        const next = candleBtns.find((btn) => !btn.classList.contains("out"));
+        if (!next) return;
+        blowCooldown = true;
+        next.classList.add("out");
+        next.disabled = true;
+        litCount -= 1;
+        window.setTimeout(() => {
+          blowCooldown = false;
+        }, 650);
+        if (litCount <= 0) finishCandles();
+      }
+
+      function extinguishAll() {
+        if (candlesDone) return;
+        candleBtns.forEach((btn) => {
+          btn.classList.add("out");
+          btn.disabled = true;
+        });
+        litCount = 0;
+        finishCandles();
+      }
+
+      function finishCandles() {
+        if (candlesDone) return;
+        candlesDone = true;
+        stopMic();
+        micHint.textContent = "¡Deseo pedido!";
+        window.setTimeout(() => {
           show("reveal");
           startConfetti();
           spinWish();
-        }, 350);
+        }, 550);
+      }
+
+      function startCandles() {
+        resetCandles();
+        stopConfetti();
+        show("candles");
+        startMic();
       }
 
       function startGame() {
@@ -802,6 +1103,8 @@
         won = false;
         playing = true;
         specialQueued = false;
+        stopMic();
+        resetCandles();
         updateScore();
         clearArena();
         stopConfetti();
@@ -899,6 +1202,13 @@
       document.getElementById("btn-start").addEventListener("click", startGame);
       document.getElementById("btn-again").addEventListener("click", startGame);
       wishBtn.addEventListener("click", spinWish);
+      document.getElementById("btn-blow").addEventListener("click", extinguishAll);
+      candleBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (btn.classList.contains("out")) return;
+          extinguishOne();
+        });
+      });
       document.getElementById("btn-home").addEventListener("click", () => {
         playing = false;
         won = false;
@@ -906,6 +1216,8 @@
         window.clearInterval(wishTimer);
         wishSpinning = false;
         wishBtn.disabled = false;
+        stopMic();
+        resetCandles();
         clearArena();
         stopConfetti();
         show("home");
