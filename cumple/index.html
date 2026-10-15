@@ -1207,10 +1207,7 @@
       wishBtn.addEventListener("click", spinWish);
       document.getElementById("btn-blow").addEventListener("click", extinguishAll);
       candleBtns.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          if (btn.classList.contains("out")) return;
-          extinguishOne();
-        });
+        btn.addEventListener("click", () => extinguishOne(btn));
       });
       document.getElementById("btn-home").addEventListener("click", () => {
         playing = false;
