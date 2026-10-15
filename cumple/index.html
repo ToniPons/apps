@@ -304,6 +304,50 @@
         animation: bob 2s ease-in-out infinite;
       }
 
+      .cats {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 0.85rem;
+        margin: 0 0 0.85rem;
+        pointer-events: none;
+      }
+
+      .cat {
+        width: 4.4rem;
+        height: auto;
+        filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.28));
+        animation: bob 2.4s ease-in-out infinite;
+      }
+
+      .cat.orange {
+        animation-delay: 0.15s;
+      }
+
+      .cat.white {
+        animation-delay: 0.55s;
+        width: 4rem;
+      }
+
+      .cats-corner {
+        position: absolute;
+        right: 0.35rem;
+        bottom: 0.2rem;
+        display: flex;
+        align-items: flex-end;
+        gap: 0.35rem;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .cats-corner .cat {
+        width: 3.1rem;
+      }
+
+      .cats-corner .cat.white {
+        width: 2.85rem;
+      }
+
       #confetti {
         position: fixed;
         inset: 0;
@@ -386,10 +430,44 @@
 
       <section class="screen active" id="screen-home" aria-label="Inicio">
         <div class="hero">
+          <div class="cats" aria-hidden="true">
+            <svg class="cat orange" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f1953a"/>
+              <circle cx="40" cy="30" r="18" fill="#f4a24c"/>
+              <path d="M22 20l-8-14 16 8z" fill="#e8842a"/>
+              <path d="M58 20l8-14-16 8z" fill="#e8842a"/>
+              <path d="M22 20l-5-10 13 6z" fill="#ffc48a"/>
+              <path d="M58 20l5-10-13 6z" fill="#ffc48a"/>
+              <circle cx="33" cy="30" r="2.4" fill="#2a1c14"/>
+              <circle cx="47" cy="30" r="2.4" fill="#2a1c14"/>
+              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff8a6b"/>
+              <path d="M40 38v4" stroke="#2a1c14" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#2a1c14" stroke-width="1.2" stroke-linecap="round"/>
+              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#e8842a"/>
+              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#e8842a"/>
+              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f1953a" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <svg class="cat white" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f7f3ec"/>
+              <circle cx="40" cy="30" r="18" fill="#fffdf8"/>
+              <path d="M22 20l-8-14 16 8z" fill="#efe6d8"/>
+              <path d="M58 20l8-14-16 8z" fill="#efe6d8"/>
+              <path d="M22 20l-5-10 13 6z" fill="#fff"/>
+              <path d="M58 20l5-10-13 6z" fill="#fff"/>
+              <circle cx="33" cy="30" r="2.4" fill="#3a2a4a"/>
+              <circle cx="47" cy="30" r="2.4" fill="#3a2a4a"/>
+              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff9aa8"/>
+              <path d="M40 38v4" stroke="#3a2a4a" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#3a2a4a" stroke-width="1.2" stroke-linecap="round"/>
+              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#efe6d8"/>
+              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#efe6d8"/>
+              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f7f3ec" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+          </div>
           <p class="eyebrow">Solo para ti</p>
           <h1>Mirggi</h1>
           <p class="lead">
-            Hay un regalo escondido entre los globos. Revienta los que puedas…
+            Hay un regalo escondido entre los globos. Revienta 10…
             y busca el dorado.
           </p>
           <button type="button" class="btn btn-primary" id="btn-start">
@@ -401,13 +479,82 @@
       <section class="screen" id="screen-play" aria-label="Juego">
         <div class="play-top">
           <p class="hint">Toca los globos</p>
-          <div class="score" id="score" aria-live="polite">0 / 8</div>
+          <div class="score" id="score" aria-live="polite">0 / 10</div>
         </div>
-        <div class="arena" id="arena" role="application" aria-label="Arena de globos"></div>
+        <div class="arena" id="arena" role="application" aria-label="Arena de globos">
+          <div class="cats-corner" aria-hidden="true">
+            <svg class="cat orange" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f1953a"/>
+              <circle cx="40" cy="30" r="18" fill="#f4a24c"/>
+              <path d="M22 20l-8-14 16 8z" fill="#e8842a"/>
+              <path d="M58 20l8-14-16 8z" fill="#e8842a"/>
+              <path d="M22 20l-5-10 13 6z" fill="#ffc48a"/>
+              <path d="M58 20l5-10-13 6z" fill="#ffc48a"/>
+              <circle cx="33" cy="30" r="2.4" fill="#2a1c14"/>
+              <circle cx="47" cy="30" r="2.4" fill="#2a1c14"/>
+              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff8a6b"/>
+              <path d="M40 38v4" stroke="#2a1c14" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#2a1c14" stroke-width="1.2" stroke-linecap="round"/>
+              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#e8842a"/>
+              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#e8842a"/>
+              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f1953a" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <svg class="cat white" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f7f3ec"/>
+              <circle cx="40" cy="30" r="18" fill="#fffdf8"/>
+              <path d="M22 20l-8-14 16 8z" fill="#efe6d8"/>
+              <path d="M58 20l8-14-16 8z" fill="#efe6d8"/>
+              <path d="M22 20l-5-10 13 6z" fill="#fff"/>
+              <path d="M58 20l5-10-13 6z" fill="#fff"/>
+              <circle cx="33" cy="30" r="2.4" fill="#3a2a4a"/>
+              <circle cx="47" cy="30" r="2.4" fill="#3a2a4a"/>
+              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff9aa8"/>
+              <path d="M40 38v4" stroke="#3a2a4a" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#3a2a4a" stroke-width="1.2" stroke-linecap="round"/>
+              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#efe6d8"/>
+              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#efe6d8"/>
+              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f7f3ec" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
       </section>
 
       <section class="screen" id="screen-reveal" aria-label="Sorpresa">
         <div class="reveal">
+          <div class="cats" aria-hidden="true">
+            <svg class="cat orange" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f1953a"/>
+              <circle cx="40" cy="30" r="18" fill="#f4a24c"/>
+              <path d="M22 20l-8-14 16 8z" fill="#e8842a"/>
+              <path d="M58 20l8-14-16 8z" fill="#e8842a"/>
+              <path d="M22 20l-5-10 13 6z" fill="#ffc48a"/>
+              <path d="M58 20l5-10-13 6z" fill="#ffc48a"/>
+              <circle cx="33" cy="30" r="2.4" fill="#2a1c14"/>
+              <circle cx="47" cy="30" r="2.4" fill="#2a1c14"/>
+              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff8a6b"/>
+              <path d="M40 38v4" stroke="#2a1c14" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#2a1c14" stroke-width="1.2" stroke-linecap="round"/>
+              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#e8842a"/>
+              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#e8842a"/>
+              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f1953a" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <svg class="cat white" viewBox="0 0 80 72" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="40" cy="48" rx="26" ry="18" fill="#f7f3ec"/>
+              <circle cx="40" cy="30" r="18" fill="#fffdf8"/>
+              <path d="M22 20l-8-14 16 8z" fill="#efe6d8"/>
+              <path d="M58 20l8-14-16 8z" fill="#efe6d8"/>
+              <path d="M22 20l-5-10 13 6z" fill="#fff"/>
+              <path d="M58 20l5-10-13 6z" fill="#fff"/>
+              <circle cx="33" cy="30" r="2.4" fill="#3a2a4a"/>
+              <circle cx="47" cy="30" r="2.4" fill="#3a2a4a"/>
+              <ellipse cx="40" cy="36" rx="3.2" ry="2.2" fill="#ff9aa8"/>
+              <path d="M40 38v4" stroke="#3a2a4a" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M28 36h-9M28 39h-8M52 36h9M52 39h8" stroke="#3a2a4a" stroke-width="1.2" stroke-linecap="round"/>
+              <ellipse cx="28" cy="62" rx="7" ry="4" fill="#efe6d8"/>
+              <ellipse cx="52" cy="62" rx="7" ry="4" fill="#efe6d8"/>
+              <path d="M62 46c8 2 12 10 8 14" fill="none" stroke="#f7f3ec" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+          </div>
           <div class="cake" aria-hidden="true">🎂</div>
           <p class="eyebrow">Lo conseguiste</p>
           <h1>¡Feliz cumpleaños, Mirggi!</h1>
@@ -424,9 +571,9 @@
     </div>
 
     <script>
-      const NEED = 8;
+      const NEED = 10;
       const COLORS = ["#ff6b8a", "#f0c35a", "#6ee7b7", "#8bb7ff", "#ff9e6b", "#d8a7ff"];
-      const EMOJIS = ["🎈", "✨", "💖", "⭐", "🎉", "🌸"];
+      const EMOJIS = ["🎈", "✨", "💖", "⭐", "🎉", "🌸", "🐱", "🐈"];
 
       const screens = {
         home: document.getElementById("screen-home"),
@@ -457,7 +604,9 @@
       }
 
       function clearArena() {
+        const cats = arena.querySelector(".cats-corner");
         arena.innerHTML = "";
+        if (cats) arena.appendChild(cats);
       }
 
       function spawnBalloon() {
