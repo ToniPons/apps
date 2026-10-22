@@ -1156,13 +1156,6 @@
       }
     }
 
-    function inviteText(code) {
-      return `Únete a mi lista en Tareas. Código: ${code}\n${location.origin}${location.pathname.replace(/\/?$/, "/")}`.replace(
-        /\/tareas\/?$/,
-        "/tareas/"
-      );
-    }
-
     function setSalaTab(tab) {
       state.salaTab = tab;
       document.querySelectorAll("[data-sala-tab]").forEach((b) => {
