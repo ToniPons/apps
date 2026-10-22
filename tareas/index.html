@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a2e28" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Tareas" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="description" content="Lista de tareas. En local o compartida en tiempo real con un código." />
+  <title>Tareas</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,500&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/home-link.css" />
+  <style>
+    :root {
+      --ink: #15241f;
+      --ink-soft: #3d524a;
+      --foam: #f3f7f4;
+      --panel: rgba(255, 255, 255, 0.72);
+      --line: rgba(21, 36, 31, 0.1);
+      --pine: #1a2e28;
+      --amber: #d97706;
+      --amber-soft: #f6e7c8;
+      --ok: #1f8a5b;
+      --danger: #c2410c;
+      --muted: #5a6e66;
+      --font-display: "Fraunces", Georgia, serif;
+      --font-body: "DM Sans", system-ui, sans-serif;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+    }
+    * { box-sizing: border-box; }
+    html { height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100%;
+      min-height: 100dvh;
+      font-family: var(--font-body);
+      color: var(--ink);
+      background: var(--foam);
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
+    }
+    .atmosphere {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(820px 480px at 10% -10%, rgba(217, 119, 6, 0.16), transparent 55%),
+        radial-gradient(700px 420px at 100% 0%, rgba(31, 138, 91, 0.12), transparent 50%),
+        linear-gradient(168deg, #e8efe9 0%, var(--foam) 48%, #e6ece8 100%);
+    }
+    .atmosphere::after {
+      content: "";
+      position: absolute; inset: 0; opacity: 0.32;
+      background-image: radial-gradient(rgba(21, 36, 31, 0.05) 0.7px, transparent 0.7px);
+      background-size: 18px 18px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent 75%);
+    }
+    .app {
+      position: relative; z-index: 1;
+      width: min(36rem, 100%);
+      margin: 0 auto;
+      padding: calc(0.85rem + var(--safe-t)) 1rem calc(6rem + var(--safe-b));
+      display: flex; flex-direction: column; gap: 1rem;
+      min-height: 100dvh;
+    }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    }
+    .brand-mini {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--pine);
+    }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.65);
+      border: 1px solid var(--line);
+      font-size: 0.78rem;
+      font-weight: 650;
+      color: var(--muted);
+    }
+    .status-pill .dot {
+      width: 0.45rem; height: 0.45rem; border-radius: 50%;
+      background: #9aa8a2;
+    }
+    .status-pill.is-live .dot { background: var(--ok); box-shadow: 0 0 0 3px rgba(31,138,91,0.18); }
+    .status-pill.is-local .dot { background: var(--amber); }
+    .status-pill.is-error .dot { background: var(--danger); }
+
+    .hero-line {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--ink-soft);
+      line-height: 1.35;
+    }
+    .hero-line strong { color: var(--ink); font-weight: 700; }
+
+    .filters {
+      display: flex; gap: 0.4rem; flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.55);
+      font-size: 0.82rem;
+      font-weight: 650;
+      color: var(--muted);
+    }
+    .filter-btn.is-active {
+      background: var(--pine);
+      border-color: var(--pine);
+      color: #f3f7f4;
+    }
+
+    .task-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+    .task-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.65rem;
+      align-items: start;
+      padding: 0.85rem 0.9rem;
+      border-radius: 1rem;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+      animation: task-in 0.28s ease both;
+    }
+    .task-item.is-done {
+      opacity: 0.72;
+    }
+    .task-item.is-done .task-text {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+    .check {
+      width: 1.55rem; height: 1.55rem;
+      border-radius: 0.5rem;
+      border: 1.5px solid rgba(21, 36, 31, 0.22);
+      background: #fff;
+      display: grid; place-items: center;
+      margin-top: 0.05rem;
+      flex-shrink: 0;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .check svg { opacity: 0; width: 0.95rem; height: 0.95rem; }
+    .task-item.is-done .check {
+      background: var(--amber);
+      border-color: var(--amber);
+    }
+    .task-item.is-done .check svg { opacity: 1; color: #fff; }
+    .task-main { min-width: 0; }
+    .task-text {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+    .task-meta {
+      margin: 0.28rem 0 0;
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .task-actions {
+      display: flex; gap: 0.15rem;
+    }
+    .icon-btn {
+      width: 2rem; height: 2rem;
+      border-radius: 0.55rem;
+      color: var(--muted);
+      display: grid; place-items: center;
+    }
+    .icon-btn:hover, .icon-btn:focus-visible {
+      background: rgba(21, 36, 31, 0.06);
+      color: var(--ink);
+    }
+    .empty {
+      padding: 2.2rem 1rem;
+      text-align: center;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .fab {
+      position: fixed;
+      right: max(1rem, env(safe-area-inset-right));
+      bottom: calc(1.1rem + var(--safe-b));
+      z-index: 20;
+      width: 3.5rem; height: 3.5rem;
+      border-radius: 1.15rem;
+      background: var(--pine);
+      color: #f3f7f4;
+      font-size: 1.75rem;
+      font-weight: 500;
+      line-height: 1;
+      box-shadow: 0 14px 32px rgba(26, 46, 40, 0.28);
+      display: grid; place-items: center;
+    }
+    .fab:active { transform: scale(0.96); }
+
+    .toolbar {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .btn {
+      padding: 0.55rem 0.85rem;
+      border-radius: 0.75rem;
+      font-weight: 700;
+      font-size: 0.86rem;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.7);
+      color: var(--ink);
+    }
+    .btn-primary {
+      background: var(--pine);
+      border-color: var(--pine);
+      color: #f3f7f4;
+    }
+    .btn-ghost { background: transparent; }
+    .btn-danger { color: var(--danger); }
+
+    .sheet-backdrop {
+      position: fixed; inset: 0; z-index: 40;
+      background: rgba(21, 36, 31, 0.35);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+    .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+    .sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+      width: min(36rem, 100%);
+      margin: 0 auto;
+      background: #fbfcfb;
+      border-radius: 1.35rem 1.35rem 0 0;
+      padding: 0.85rem 1.1rem calc(1.2rem + var(--safe-b));
+      transform: translateY(105%);
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      max-height: min(88dvh, 40rem);
+      overflow: auto;
+      box-shadow: 0 -20px 50px rgba(21, 36, 31, 0.12);
+    }
+    .sheet.open { transform: translateY(0); }
+    .sheet-handle {
+      width: 2.5rem; height: 0.28rem; border-radius: 99px;
+      background: rgba(21,36,31,0.15);
+      margin: 0 auto 0.9rem;
+    }
+    .sheet h2 {
+      margin: 0 0 0.35rem;
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+    .sheet p.lead {
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.85rem; }
+    .field label { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); }
+    .field input, .field select {
+      width: 100%;
+      padding: 0.75rem 0.85rem;
+      border-radius: 0.8rem;
+      border: 1px solid var(--line);
+      background: #fff;
+      outline: none;
+    }
+    .field input:focus, .field select:focus {
+      border-color: rgba(217, 119, 6, 0.55);
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+    }
+    .code-display {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      letter-spacing: 0.28em;
+      text-align: center;
+      padding: 0.9rem;
+      margin: 0.5rem 0 1rem;
+      border-radius: 1rem;
+      background: var(--amber-soft);
+      color: var(--ink);
+    }
+    .row-actions {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      margin-top: 0.4rem;
+    }
+    .row-actions .btn { flex: 1; min-width: 7rem; }
+    .error {
+      color: var(--danger);
+      font-size: 0.85rem;
+      font-weight: 650;
+      margin: 0 0 0.75rem;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(5.2rem + var(--safe-b));
+      transform: translateX(-50%) translateY(12px);
+      z-index: 60;
+      background: var(--pine);
+      color: #f3f7f4;
+      padding: 0.65rem 1rem;
+      border-radius: 999px;
+      font-size: 0.86rem;
+      font-weight: 650;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: nowrap;
+      max-width: calc(100% - 2rem);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .setup-banner {
+      padding: 0.85rem 0.95rem;
+      border-radius: 1rem;
+      background: rgba(217, 119, 6, 0.1);
+      border: 1px solid rgba(217, 119, 6, 0.25);
+      font-size: 0.86rem;
+      line-height: 1.4;
+      color: var(--ink-soft);
+    }
+    .setup-banner code {
+      font-size: 0.8em;
+      background: rgba(255,255,255,0.65);
+      padding: 0.1rem 0.3rem;
+      border-radius: 0.3rem;
+    }
+    body.sheet-open { overflow: hidden; }
+    @keyframes task-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .task-item, .sheet, .sheet-backdrop, .toast, .fab { transition: none; animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+  <div class="app">
+    <a class="home-link" href="../">Apps</a>
+    <header class="topbar">
+      <h1 class="brand-mini">Tareas</h1>
+      <span class="status-pill is-local" id="status-pill" title="Estado de sync">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="status-text">Local</span>
+      </span>
+    </header>
+    <p class="hero-line" id="hero-line">Tu lista en este dispositivo.</p>
+    <div class="toolbar">
+      <button type="button" class="btn" id="btn-share">Compartir</button>
+      <button type="button" class="btn" id="btn-join">Unirse</button>
+      <button type="button" class="btn btn-ghost" id="btn-leave" hidden>Salir de sala</button>
+      <button type="button" class="btn btn-ghost btn-danger" id="btn-clear-done">Limpiar hechas</button>
+    </div>
+    <div class="setup-banner" id="setup-banner" hidden></div>
+    <div class="filters" role="tablist" aria-label="Filtro">
+      <button type="button" class="filter-btn is-active" data-filter="open">Pendientes</button>
+      <button type="button" class="filter-btn" data-filter="all">Todas</button>
+      <button type="button" class="filter-btn" data-filter="done">Hechas</button>
+    </div>
+    <ul class="task-list" id="task-list"></ul>
+    <p class="empty" id="empty" hidden>No hay tareas aquí. Pulsa + para añadir.</p>
+  </div>
+
+  <button type="button" class="fab" id="fab-add" aria-label="Añadir tarea">+</button>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+
+  <div class="sheet" id="add-sheet" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <h2>Nueva tarea</h2>
+    <p class="lead">Texto corto. Opcionalmente asígnala.</p>
+    <form id="add-form">
+      <div class="field">
+        <label for="task-text">Qué hay que hacer</label>
+        <input id="task-text" name="text" autocomplete="off" maxlength="200" required placeholder="Ej. Comprar leche" />
+      </div>
+      <div class="field">
+        <label for="task-assignee">Quién</label>
+        <select id="task-assignee">
+          <option value="">Cualquiera</option>
+        </select>
+      </div>
+      <p class="error" id="add-error" hidden></p>
+      <div class="row-actions">
+        <button type="button" class="btn" id="add-cancel">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Añadir</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="sheet" id="share-sheet" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <h2>Compartir lista</h2>
+    <p class="lead">Crea una sala y pásale el código a la otra persona. Los dos veréis los cambios al momento.</p>
+    <form id="share-form">
+      <div class="field">
+        <label for="share-name">Tu nombre</label>
+        <input id="share-name" maxlength="24" required placeholder="Ej. Toni" autocomplete="nickname" />
+      </div>
+      <p class="error" id="share-error" hidden></p>
+      <div id="share-result" hidden>
+        <p class="lead" style="margin-bottom:0.25rem">Código de sala</p>
+        <div class="code-display" id="share-code"></div>
+        <div class="row-actions">
+          <button type="button" class="btn btn-primary" id="btn-copy-code">Copiar código</button>
+        </div>
+      </div>
+      <div class="row-actions" id="share-actions">
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear sala</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="sheet" id="join-sheet" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <h2>Unirse</h2>
+    <p class="lead">Introduce el código de 6 caracteres y tu nombre.</p>
+    <form id="join-form">
+      <div class="field">
+        <label for="join-code">Código</label>
+        <input id="join-code" maxlength="8" required placeholder="ABC123" autocomplete="off" style="text-transform:uppercase;letter-spacing:0.12em;font-weight:700" />
+      </div>
+      <div class="field">
+        <label for="join-name">Tu nombre</label>
+        <input id="join-name" maxlength="24" required placeholder="Ej. Mirggi" autocomplete="nickname" />
+      </div>
+      <p class="error" id="join-error" hidden></p>
+      <div class="row-actions">
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Entrar</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="./firebase-config.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import {
+      getFirestore,
+      enableIndexedDbPersistence,
+      doc,
+      collection,
+      setDoc,
+      getDoc,
+      updateDoc,
+      deleteDoc,
+      onSnapshot,
+      query,
+      orderBy,
+      serverTimestamp,
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+    const LOCAL_KEY = "tareas-local-v1";
+    const SESSION_KEY = "tareas-session-v1";
+    const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    const $ = (sel, root = document) => root.querySelector(sel);
+    const uid = () =>
+      crypto.randomUUID?.() ||
+      `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+    function toast(msg) {
+      const el = $("#toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("show"), 1900);
+    }
+
+    function loadLocal() {
+      try {
+        const raw = localStorage.getItem(LOCAL_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    function saveLocal(tasks) {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(tasks));
+    }
+    function loadSession() {
+      try {
+        return JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+      } catch {
+        return null;
+      }
+    }
+    function saveSession(session) {
+      if (!session) localStorage.removeItem(SESSION_KEY);
+      else localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    }
+
+    function randomCode(len = 6) {
+      const bytes = new Uint8Array(len);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
+    }
+
+    function normalizeCode(raw) {
+      return String(raw || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .slice(0, 6);
+    }
+
+    const firebaseReady = Boolean(window.TAREAS_FIREBASE_READY);
+    let db = null;
+    let unsubTasks = null;
+    let unsubRoom = null;
+
+    const state = {
+      mode: "local", // local | room
+      filter: "open",
+      tasks: loadLocal(),
+      session: loadSession(),
+      members: {},
+      syncError: null,
+    };
+
+    if (firebaseReady) {
+      try {
+        const app = initializeApp(window.TAREAS_FIREBASE);
+        db = getFirestore(app);
+        enableIndexedDbPersistence(db).catch(() => {});
+      } catch (err) {
+        console.error(err);
+        state.syncError = "No se pudo iniciar Firebase.";
+      }
+    }
+
+    const sheets = [$("#add-sheet"), $("#share-sheet"), $("#join-sheet")];
+    const backdrop = $("#sheet-backdrop");
+
+    function openSheet(sheet) {
+      sheets.forEach((s) => {
+        if (s !== sheet) {
+          s.classList.remove("open");
+          s.hidden = true;
+        }
+      });
+      backdrop.hidden = false;
+      sheet.hidden = false;
+      requestAnimationFrame(() => {
+        backdrop.classList.add("open");
+        sheet.classList.add("open");
+        document.body.classList.add("sheet-open");
+      });
+    }
+    function closeSheets() {
+      sheets.forEach((s) => s.classList.remove("open"));
+      backdrop.classList.remove("open");
+      document.body.classList.remove("sheet-open");
+      setTimeout(() => {
+        sheets.forEach((s) => { s.hidden = true; });
+        backdrop.hidden = true;
+      }, 260);
+    }
+
+    function setStatus() {
+      const pill = $("#status-pill");
+      const text = $("#status-text");
+      pill.classList.remove("is-live", "is-local", "is-error");
+      if (state.syncError) {
+        pill.classList.add("is-error");
+        text.textContent = "Error";
+        return;
+      }
+      if (state.mode === "room") {
+        pill.classList.add("is-live");
+        text.textContent = state.session?.code || "Sala";
+        return;
+      }
+      pill.classList.add("is-local");
+      text.textContent = "Local";
+    }
+
+    function memberName(id) {
+      if (!id) return "Cualquiera";
+      return state.members[id]?.name || "Alguien";
+    }
+
+    function otherMembers() {
+      if (!state.session) return [];
+      return Object.entries(state.members)
+        .filter(([id]) => id !== state.session.memberId)
+        .map(([id, m]) => ({ id, name: m.name }));
+    }
+
+    function fillAssigneeSelect(select, selected = "") {
+      const opts = [`<option value="">Cualquiera</option>`];
+      if (state.session) {
+        opts.push(`<option value="${state.session.memberId}">Yo (${escapeHtml(state.session.name)})</option>`);
+        for (const m of otherMembers()) {
+          opts.push(`<option value="${m.id}">${escapeHtml(m.name)}</option>`);
+        }
+      }
+      select.innerHTML = opts.join("");
+      select.value = selected;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function filteredTasks() {
+      const list = [...state.tasks].sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+      if (state.filter === "open") return list.filter((t) => !t.done);
+      if (state.filter === "done") return list.filter((t) => t.done);
+      return list;
+    }
+
+    function render() {
+      setStatus();
+      const hero = $("#hero-line");
+      const leaveBtn = $("#btn-leave");
+      const shareBtn = $("#btn-share");
+      const joinBtn = $("#btn-join");
+      const banner = $("#setup-banner");
+
+      if (state.mode === "room" && state.session) {
+        const others = otherMembers().map((m) => m.name);
+        hero.innerHTML = others.length
+          ? `Sala <strong>${escapeHtml(state.session.code)}</strong> · contigo y ${escapeHtml(others.join(", "))}`
+          : `Sala <strong>${escapeHtml(state.session.code)}</strong> · esperando a la otra persona`;
+        leaveBtn.hidden = false;
+        shareBtn.hidden = true;
+        joinBtn.hidden = true;
+      } else {
+        hero.textContent = "Tu lista en este dispositivo. Compártela con un código cuando quieras.";
+        leaveBtn.hidden = true;
+        shareBtn.hidden = false;
+        joinBtn.hidden = false;
+      }
+
+      if (!firebaseReady) {
+        banner.hidden = false;
+        banner.innerHTML =
+          "Para sincronizar entre dos personas, crea un proyecto Firebase (plan Spark, gratis) con Firestore y pega la config web en <code>tareas/firebase-config.js</code>. Publica también <code>tareas/firestore.rules</code>. Mientras, la lista local funciona igual.";
+      } else if (state.syncError) {
+        banner.hidden = false;
+        banner.textContent = state.syncError;
+      } else {
+        banner.hidden = true;
+      }
+
+      document.querySelectorAll(".filter-btn").forEach((btn) => {
+        btn.classList.toggle("is-active", btn.dataset.filter === state.filter);
+      });
+
+      const tasks = filteredTasks();
+      const list = $("#task-list");
+      const empty = $("#empty");
+      if (!tasks.length) {
+        list.innerHTML = "";
+        empty.hidden = false;
+      } else {
+        empty.hidden = true;
+        list.innerHTML = tasks
+          .map((t) => {
+            const who = t.assignee ? memberName(t.assignee) : "Cualquiera";
+            const by = t.createdByName ? ` · ${escapeHtml(t.createdByName)}` : "";
+            return `<li class="task-item${t.done ? " is-done" : ""}" data-id="${t.id}">
+              <button type="button" class="check" data-toggle="${t.id}" aria-label="${t.done ? "Marcar pendiente" : "Marcar hecha"}">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="task-main">
+                <p class="task-text">${escapeHtml(t.text)}</p>
+                <p class="task-meta">${escapeHtml(who)}${by}</p>
+              </div>
+              <div class="task-actions">
+                <button type="button" class="icon-btn" data-remove="${t.id}" aria-label="Eliminar">✕</button>
+              </div>
+            </li>`;
+          })
+          .join("");
+      }
+    }
+
+    async function persistLocal() {
+      saveLocal(state.tasks);
+    }
+
+    async function addTask({ text, assignee }) {
+      const task = {
+        id: uid(),
+        text: text.trim(),
+        done: false,
+        assignee: assignee || "",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdBy: state.session?.memberId || "local",
+        createdByName: state.session?.name || "",
+      };
+      if (state.mode === "room" && db && state.session) {
+        await setDoc(doc(db, "rooms", state.session.code, "tasks", task.id), {
+          text: task.text,
+          done: false,
+          assignee: task.assignee,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          createdBy: task.createdBy,
+          createdByName: task.createdByName,
+          serverCreatedAt: serverTimestamp(),
+        });
+      } else {
+        state.tasks = [task, ...state.tasks];
+        await persistLocal();
+        render();
+      }
+    }
+
+    async function toggleTask(id) {
+      const task = state.tasks.find((t) => t.id === id);
+      if (!task) return;
+      const done = !task.done;
+      if (state.mode === "room" && db && state.session) {
+        await updateDoc(doc(db, "rooms", state.session.code, "tasks", id), {
+          done,
+          updatedAt: Date.now(),
+        });
+      } else {
+        state.tasks = state.tasks.map((t) =>
+          t.id === id ? { ...t, done, updatedAt: Date.now() } : t
+        );
+        await persistLocal();
+        render();
+      }
+    }
+
+    async function removeTask(id) {
+      if (state.mode === "room" && db && state.session) {
+        await deleteDoc(doc(db, "rooms", state.session.code, "tasks", id));
+      } else {
+        state.tasks = state.tasks.filter((t) => t.id !== id);
+        await persistLocal();
+        render();
+      }
+    }
+
+    async function clearDone() {
+      const done = state.tasks.filter((t) => t.done);
+      if (!done.length) {
+        toast("No hay hechas");
+        return;
+      }
+      if (!confirm(`¿Quitar ${done.length} tarea${done.length === 1 ? "" : "s"} hecha${done.length === 1 ? "" : "s"}?`)) return;
+      if (state.mode === "room" && db && state.session) {
+        await Promise.all(
+          done.map((t) => deleteDoc(doc(db, "rooms", state.session.code, "tasks", t.id)))
+        );
+      } else {
+        state.tasks = state.tasks.filter((t) => !t.done);
+        await persistLocal();
+        render();
+      }
+      toast("Hechas limpiadas");
+    }
+
+    function stopRoomListeners() {
+      unsubTasks?.();
+      unsubRoom?.();
+      unsubTasks = null;
+      unsubRoom = null;
+    }
+
+    function attachRoom(session) {
+      stopRoomListeners();
+      state.mode = "room";
+      state.session = session;
+      saveSession(session);
+      state.syncError = null;
+
+      const roomRef = doc(db, "rooms", session.code);
+      unsubRoom = onSnapshot(
+        roomRef,
+        (snap) => {
+          if (!snap.exists()) {
+            state.syncError = "Esta sala ya no existe.";
+            render();
+            return;
+          }
+          const data = snap.data();
+          state.members = data.members || {};
+          render();
+        },
+        (err) => {
+          console.error(err);
+          state.syncError = "Error de sync. Revisa las reglas de Firestore.";
+          render();
+        }
+      );
+
+      const tasksQ = query(
+        collection(db, "rooms", session.code, "tasks"),
+        orderBy("createdAt", "desc")
+      );
+      unsubTasks = onSnapshot(
+        tasksQ,
+        (snap) => {
+          state.tasks = snap.docs.map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              text: data.text || "",
+              done: Boolean(data.done),
+              assignee: data.assignee || "",
+              createdAt: data.createdAt || 0,
+              updatedAt: data.updatedAt || 0,
+              createdBy: data.createdBy || "",
+              createdByName: data.createdByName || "",
+            };
+          });
+          render();
+        },
+        (err) => {
+          console.error(err);
+          state.syncError = "No se pueden leer las tareas (reglas / índice).";
+          render();
+        }
+      );
+      render();
+    }
+
+    async function createRoom(name) {
+      if (!db) throw new Error("Firebase no configurado");
+      let code = randomCode();
+      for (let i = 0; i < 5; i++) {
+        const existing = await getDoc(doc(db, "rooms", code));
+        if (!existing.exists()) break;
+        code = randomCode();
+      }
+      const memberId = uid();
+      const session = { code, memberId, name };
+      await setDoc(doc(db, "rooms", code), {
+        createdAt: Date.now(),
+        members: {
+          [memberId]: { name, joinedAt: Date.now() },
+        },
+      });
+
+      // Optional: seed current local open tasks into the new room
+      const localOpen = loadLocal().filter((t) => !t.done).slice(0, 40);
+      await Promise.all(
+        localOpen.map((t) =>
+          setDoc(doc(db, "rooms", code, "tasks", t.id || uid()), {
+            text: t.text,
+            done: false,
+            assignee: "",
+            createdAt: t.createdAt || Date.now(),
+            updatedAt: Date.now(),
+            createdBy: memberId,
+            createdByName: name,
+            serverCreatedAt: serverTimestamp(),
+          })
+        )
+      );
+
+      attachRoom(session);
+      return session;
+    }
+
+    async function joinRoom(code, name) {
+      if (!db) throw new Error("Firebase no configurado");
+      code = normalizeCode(code);
+      if (code.length !== 6) throw new Error("El código debe tener 6 caracteres.");
+      const roomRef = doc(db, "rooms", code);
+      const snap = await getDoc(roomRef);
+      if (!snap.exists()) throw new Error("No hay ninguna sala con ese código.");
+      const memberId = uid();
+      const members = { ...(snap.data().members || {}) };
+      members[memberId] = { name, joinedAt: Date.now() };
+      await updateDoc(roomRef, { members });
+      const session = { code, memberId, name };
+      attachRoom(session);
+      return session;
+    }
+
+    function leaveRoom() {
+      stopRoomListeners();
+      state.mode = "local";
+      state.session = null;
+      state.members = {};
+      saveSession(null);
+      state.tasks = loadLocal();
+      state.syncError = null;
+      render();
+      toast("Volviste a la lista local");
+    }
+
+    // Events
+    $("#fab-add").addEventListener("click", () => {
+      $("#add-error").hidden = true;
+      $("#task-text").value = "";
+      fillAssigneeSelect($("#task-assignee"));
+      openSheet($("#add-sheet"));
+      setTimeout(() => $("#task-text").focus(), 280);
+    });
+    $("#add-cancel").addEventListener("click", closeSheets);
+    backdrop.addEventListener("click", closeSheets);
+    document.querySelectorAll("[data-close]").forEach((btn) =>
+      btn.addEventListener("click", closeSheets)
+    );
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeSheets();
+    });
+
+    $("#add-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = $("#task-text").value.trim();
+      if (!text) {
+        $("#add-error").hidden = false;
+        $("#add-error").textContent = "Escribe la tarea.";
+        return;
+      }
+      try {
+        await addTask({ text, assignee: $("#task-assignee").value });
+        closeSheets();
+        toast("Tarea añadida");
+      } catch (err) {
+        console.error(err);
+        $("#add-error").hidden = false;
+        $("#add-error").textContent = "No se pudo guardar.";
+      }
+    });
+
+    $("#task-list").addEventListener("click", async (e) => {
+      const toggle = e.target.closest("[data-toggle]");
+      if (toggle) {
+        await toggleTask(toggle.dataset.toggle);
+        return;
+      }
+      const remove = e.target.closest("[data-remove]");
+      if (remove) {
+        if (!confirm("¿Eliminar esta tarea?")) return;
+        await removeTask(remove.dataset.remove);
+        toast("Eliminada");
+      }
+    });
+
+    document.querySelector(".filters").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-filter]");
+      if (!btn) return;
+      state.filter = btn.dataset.filter;
+      render();
+    });
+
+    $("#btn-clear-done").addEventListener("click", () => clearDone());
+    $("#btn-leave").addEventListener("click", () => {
+      if (!confirm("¿Salir de la sala compartida? Seguirás viendo tu lista local.")) return;
+      leaveRoom();
+    });
+
+    $("#btn-share").addEventListener("click", () => {
+      if (!firebaseReady || !db) {
+        toast("Configura Firebase primero");
+        $("#setup-banner")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      $("#share-error").hidden = true;
+      $("#share-result").hidden = true;
+      $("#share-actions").hidden = false;
+      $("#share-name").value = state.session?.name || "";
+      openSheet($("#share-sheet"));
+    });
+
+    $("#share-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = $("#share-name").value.trim();
+      if (!name) return;
+      $("#share-error").hidden = true;
+      try {
+        const session = await createRoom(name);
+        $("#share-code").textContent = session.code;
+        $("#share-result").hidden = false;
+        $("#share-actions").hidden = true;
+        toast("Sala creada");
+      } catch (err) {
+        console.error(err);
+        $("#share-error").hidden = false;
+        $("#share-error").textContent =
+          err.message || "No se pudo crear. ¿Firestore activo y reglas publicadas?";
+      }
+    });
+
+    $("#btn-copy-code").addEventListener("click", async () => {
+      const code = $("#share-code").textContent;
+      try {
+        await navigator.clipboard.writeText(code);
+        toast("Código copiado");
+      } catch {
+        toast(code);
+      }
+    });
+
+    $("#btn-join").addEventListener("click", () => {
+      if (!firebaseReady || !db) {
+        toast("Configura Firebase primero");
+        return;
+      }
+      $("#join-error").hidden = true;
+      $("#join-code").value = "";
+      $("#join-name").value = "";
+      openSheet($("#join-sheet"));
+    });
+
+    $("#join-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      $("#join-error").hidden = true;
+      try {
+        await joinRoom($("#join-code").value, $("#join-name").value.trim());
+        closeSheets();
+        toast("Dentro de la sala");
+      } catch (err) {
+        console.error(err);
+        $("#join-error").hidden = false;
+        $("#join-error").textContent = err.message || "No se pudo entrar.";
+      }
+    });
+
+    // Resume shared session
+    if (firebaseReady && db && state.session?.code && state.session?.memberId) {
+      getDoc(doc(db, "rooms", state.session.code))
+        .then((snap) => {
+          if (!snap.exists()) {
+            saveSession(null);
+            state.session = null;
+            render();
+            return;
+          }
+          attachRoom(state.session);
+        })
+        .catch(() => {
+          state.syncError = "No se pudo reabrir la sala.";
+          render();
+        });
+    } else {
+      render();
+    }
+  </script>
+</body>
+</html>
