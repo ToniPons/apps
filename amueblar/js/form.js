@@ -638,6 +638,11 @@ export function initForm(callbacks) {
 
   document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape') return;
+    const photoSource = document.getElementById('photo-source-overlay');
+    if (photoSource?.classList.contains('open')) {
+      closePhotoSource();
+      return;
+    }
     if (overlay?.classList.contains('open')) tryCloseForm();
     else if (detailOverlay?.classList.contains('open')) closeDetail();
   });
