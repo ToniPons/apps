@@ -2,9 +2,9 @@ const CACHE = 'amueblar-v27';
 const ASSETS = [
   './',
   './index.html',
-  './css/app.css?v=27',
+  './css/app.css',
   '../shared/home-link.css',
-  './js/app.js?v=27',
+  './js/app.js',
   './js/db.js',
   './js/ui.js',
   './js/form.js',
