@@ -157,26 +157,26 @@
           <input type="hidden" id="field-id" />
 
           <div class="photo-pickers">
-            <label class="photo-slot" id="slot-mueble">
+            <button type="button" class="photo-slot" id="slot-mueble" aria-label="Foto del mueble">
               <img id="preview-mueble" alt="" hidden />
               <span class="photo-slot-label">
                 <strong>Mueble</strong>
-                <small>Toca para foto</small>
+                <small>Cámara o galería</small>
               </span>
               <span class="photo-slot-change">Cambiar</span>
-              <button type="button" class="photo-clear" id="clear-mueble" hidden>Quitar</button>
-              <input id="input-mueble" type="file" accept="image/*" capture="environment" />
-            </label>
-            <label class="photo-slot" id="slot-etiqueta">
+              <span class="photo-clear" id="clear-mueble" hidden role="button" tabindex="0">Quitar</span>
+            </button>
+            <button type="button" class="photo-slot" id="slot-etiqueta" aria-label="Foto de la etiqueta">
               <img id="preview-etiqueta" alt="" hidden />
               <span class="photo-slot-label">
                 <strong>Etiqueta</strong>
                 <small>Opcional</small>
               </span>
               <span class="photo-slot-change">Cambiar</span>
-              <button type="button" class="photo-clear" id="clear-etiqueta" hidden>Quitar</button>
-              <input id="input-etiqueta" type="file" accept="image/*" capture="environment" />
-            </label>
+              <span class="photo-clear" id="clear-etiqueta" hidden role="button" tabindex="0">Quitar</span>
+            </button>
+            <input id="input-mueble" class="file-input-host" type="file" accept="image/*" />
+            <input id="input-etiqueta" class="file-input-host" type="file" accept="image/*" />
           </div>
 
           <div class="form-group">
@@ -384,6 +384,22 @@
     />
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="overlay photo-source-overlay" id="photo-source-overlay" aria-hidden="true" role="presentation">
+      <div class="sheet sheet-compact" role="dialog" aria-modal="true" aria-labelledby="photo-source-title" tabindex="-1">
+        <div class="sheet-top">
+          <div class="sheet-handle" aria-hidden="true"></div>
+          <button type="button" class="sheet-close" id="photo-source-close" aria-label="Cerrar">×</button>
+        </div>
+        <h2 id="photo-source-title">Añadir foto</h2>
+        <p class="step-hint" id="photo-source-hint">Elige de dónde sacarla.</p>
+        <div class="photo-source-actions">
+          <button type="button" class="btn btn-primary" id="photo-source-camera">Cámara</button>
+          <button type="button" class="btn btn-secondary" id="photo-source-gallery">Galería</button>
+          <button type="button" class="btn btn-secondary" id="photo-source-cancel">Cancelar</button>
+        </div>
+      </div>
+    </div>
 
     <div class="lightbox" id="lightbox" hidden aria-hidden="true" role="dialog" aria-label="Imagen ampliada">
       <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Cerrar">×</button>
