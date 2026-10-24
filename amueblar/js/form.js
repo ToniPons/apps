@@ -419,6 +419,48 @@ export function initForm(callbacks) {
     };
   }
 
+  /** @type {HTMLInputElement|null} */
+  let pendingPhotoInput = null;
+
+  function closePhotoSource() {
+    pendingPhotoInput = null;
+    setOverlayOpen('photo-source-overlay', false);
+  }
+
+  /**
+   * @param {HTMLInputElement} input
+   * @param {'mueble'|'etiqueta'} kind
+   */
+  function openPhotoSource(input, kind) {
+    pendingPhotoInput = input;
+    const hint = document.getElementById('photo-source-hint');
+    if (hint) {
+      hint.textContent =
+        kind === 'etiqueta'
+          ? 'Foto de la etiqueta: cámara o galería.'
+          : 'Foto del mueble: cámara o galería.';
+    }
+    setOverlayOpen('photo-source-overlay', true, {
+      focusSelector: '#photo-source-camera',
+    });
+  }
+
+  /**
+   * @param {'camera'|'gallery'} mode
+   */
+  function pickPhotoSource(mode) {
+    const input = pendingPhotoInput;
+    if (!input) return;
+    if (mode === 'camera') input.setAttribute('capture', 'environment');
+    else input.removeAttribute('capture');
+    setOverlayOpen('photo-source-overlay', false);
+    pendingPhotoInput = null;
+    // Defer so the overlay can close before the system picker opens
+    requestAnimationFrame(() => {
+      input.click();
+    });
+  }
+
   inputMueble.addEventListener('change', async () => {
     const file = inputMueble.files?.[0];
     if (!file) return;
@@ -437,6 +479,29 @@ export function initForm(callbacks) {
     markDirty();
   });
 
+  slotMueble?.addEventListener('click', (ev) => {
+    const target = /** @type {HTMLElement} */ (ev.target);
+    if (target.closest('#clear-mueble')) return;
+    openPhotoSource(inputMueble, 'mueble');
+  });
+  slotEtiqueta?.addEventListener('click', (ev) => {
+    const target = /** @type {HTMLElement} */ (ev.target);
+    if (target.closest('#clear-etiqueta')) return;
+    openPhotoSource(inputEtiqueta, 'etiqueta');
+  });
+
+  document.getElementById('photo-source-camera')?.addEventListener('click', () => {
+    pickPhotoSource('camera');
+  });
+  document.getElementById('photo-source-gallery')?.addEventListener('click', () => {
+    pickPhotoSource('gallery');
+  });
+  document.getElementById('photo-source-cancel')?.addEventListener('click', closePhotoSource);
+  document.getElementById('photo-source-close')?.addEventListener('click', closePhotoSource);
+  document.getElementById('photo-source-overlay')?.addEventListener('click', (ev) => {
+    if (ev.target === ev.currentTarget) closePhotoSource();
+  });
+
   document.getElementById('clear-mueble')?.addEventListener('click', (ev) => {
     ev.preventDefault();
     ev.stopPropagation();
@@ -450,6 +515,20 @@ export function initForm(callbacks) {
     fotoEtiqueta = null;
     setPreview(etiquetaPreview, slotEtiqueta, null);
     markDirty();
+  });
+  document.getElementById('clear-mueble')?.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      ev.stopPropagation();
+      /** @type {HTMLElement} */ (ev.currentTarget).click();
+    }
+  });
+  document.getElementById('clear-etiqueta')?.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      ev.stopPropagation();
+      /** @type {HTMLElement} */ (ev.currentTarget).click();
+    }
   });
 
   quickToggle?.addEventListener('change', () => {

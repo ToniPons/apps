@@ -786,6 +786,10 @@ body::before {
   text-align: center;
   padding: 0.5rem;
   color: var(--ink-muted);
+  font: inherit;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .photo-slot-label {
@@ -811,13 +815,6 @@ body::before {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.photo-slot input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
 }
 
 .photo-slot-change {
@@ -852,6 +849,7 @@ body::before {
   font-size: 0.72rem;
   font-weight: 700;
   min-height: 1.75rem;
+  line-height: 1.75rem;
   cursor: pointer;
   pointer-events: auto;
 }
@@ -873,9 +871,24 @@ body::before {
   display: block;
 }
 
-.photo-slot.has-image input[type='file'] {
-  bottom: 2.1rem;
-  height: auto;
+.photo-source-overlay {
+  z-index: 80;
+}
+
+.sheet-compact {
+  max-height: none;
+}
+
+.photo-source-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.photo-source-actions .btn {
+  width: 100%;
+  justify-content: center;
 }
 
 .btn-row {
