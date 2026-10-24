@@ -780,16 +780,15 @@ body::before {
   border: 2px dashed rgba(28, 36, 33, 0.2);
   background: var(--paper);
   overflow: hidden;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
   text-align: center;
-  padding: 0.5rem;
+  padding: 0.55rem 0.45rem 0.5rem;
   color: var(--ink-muted);
-  font: inherit;
   width: 100%;
-  appearance: none;
-  -webkit-appearance: none;
 }
 
 .photo-slot-label {
@@ -797,6 +796,7 @@ body::before {
   flex-direction: column;
   gap: 0.15rem;
   pointer-events: none;
+  z-index: 1;
 }
 
 .photo-slot-label strong {
@@ -815,23 +815,47 @@ body::before {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  z-index: 0;
 }
 
-.photo-slot-change {
-  display: none;
-  position: absolute;
-  left: 0.4rem;
-  right: 0.4rem;
-  bottom: 2.2rem;
-  z-index: 1;
-  pointer-events: none;
-  background: rgba(28, 36, 33, 0.75);
+.photo-src-row {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0 0.15rem;
+}
+
+.photo-src-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.15rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 9px;
+  background: var(--accent);
   color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.35rem;
-  border-radius: 8px;
-  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.photo-src-btn:nth-child(2) {
+  background: rgba(28, 36, 33, 0.82);
+}
+
+.photo-src-btn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  font-size: 0;
 }
 
 .photo-clear {
@@ -849,46 +873,26 @@ body::before {
   font-size: 0.72rem;
   font-weight: 700;
   min-height: 1.75rem;
-  line-height: 1.75rem;
   cursor: pointer;
-  pointer-events: auto;
 }
 
 .photo-slot.has-image {
   border-style: solid;
   border-color: transparent;
+  justify-content: flex-end;
+  padding-bottom: 2.3rem;
 }
 
 .photo-slot.has-image .photo-slot-label {
   display: none;
 }
 
-.photo-slot.has-image .photo-slot-change {
-  display: block;
+.photo-slot.has-image .photo-src-row {
+  margin-top: auto;
 }
 
 .photo-slot.has-image .photo-clear {
   display: block;
-}
-
-.photo-source-overlay {
-  z-index: 80;
-}
-
-.sheet-compact {
-  max-height: none;
-}
-
-.photo-source-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  margin-top: 0.35rem;
-}
-
-.photo-source-actions .btn {
-  width: 100%;
-  justify-content: center;
 }
 
 .btn-row {

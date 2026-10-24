@@ -1,10 +1,10 @@
-const CACHE = 'amueblar-v26';
+const CACHE = 'amueblar-v27';
 const ASSETS = [
   './',
   './index.html',
-  './css/app.css',
+  './css/app.css?v=27',
   '../shared/home-link.css',
-  './js/app.js',
+  './js/app.js?v=27',
   './js/db.js',
   './js/ui.js',
   './js/form.js',

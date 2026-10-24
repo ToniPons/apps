@@ -44,8 +44,18 @@ export function initForm(callbacks) {
   const etiquetaPreview = document.getElementById('preview-etiqueta');
   const slotMueble = document.getElementById('slot-mueble');
   const slotEtiqueta = document.getElementById('slot-etiqueta');
-  const inputMueble = /** @type {HTMLInputElement} */ (document.getElementById('input-mueble'));
-  const inputEtiqueta = /** @type {HTMLInputElement} */ (document.getElementById('input-etiqueta'));
+  const inputMuebleCamera = /** @type {HTMLInputElement} */ (
+    document.getElementById('input-mueble-camera')
+  );
+  const inputMuebleGallery = /** @type {HTMLInputElement} */ (
+    document.getElementById('input-mueble-gallery')
+  );
+  const inputEtiquetaCamera = /** @type {HTMLInputElement} */ (
+    document.getElementById('input-etiqueta-camera')
+  );
+  const inputEtiquetaGallery = /** @type {HTMLInputElement} */ (
+    document.getElementById('input-etiqueta-gallery')
+  );
   const detailContent = document.getElementById('detail-content');
   const deleteRow = document.getElementById('form-delete-row');
   const duplicateRow = document.getElementById('form-duplicate-row');
@@ -419,88 +429,31 @@ export function initForm(callbacks) {
     };
   }
 
-  /** @type {HTMLInputElement|null} */
-  let pendingPhotoInput = null;
-
-  function closePhotoSource() {
-    pendingPhotoInput = null;
-    setOverlayOpen('photo-source-overlay', false);
-  }
-
   /**
-   * @param {HTMLInputElement} input
+   * @param {HTMLInputElement|null} input
    * @param {'mueble'|'etiqueta'} kind
    */
-  function openPhotoSource(input, kind) {
-    pendingPhotoInput = input;
-    const hint = document.getElementById('photo-source-hint');
-    if (hint) {
-      hint.textContent =
-        kind === 'etiqueta'
-          ? 'Foto de la etiqueta: cámara o galería.'
-          : 'Foto del mueble: cámara o galería.';
+  async function onPhotoPicked(input, kind) {
+    const file = input?.files?.[0];
+    if (!file || !input) return;
+    const dataUrl = await fileToDataUrl(file);
+    if (kind === 'mueble') {
+      fotoMueble = dataUrl;
+      setPreview(mueblePreview, slotMueble, fotoMueble);
+    } else {
+      fotoEtiqueta = dataUrl;
+      setPreview(etiquetaPreview, slotEtiqueta, fotoEtiqueta);
     }
-    setOverlayOpen('photo-source-overlay', true, {
-      focusSelector: '#photo-source-camera',
-    });
+    input.value = '';
+    markDirty();
   }
 
-  /**
-   * @param {'camera'|'gallery'} mode
-   */
-  function pickPhotoSource(mode) {
-    const input = pendingPhotoInput;
-    if (!input) return;
-    if (mode === 'camera') input.setAttribute('capture', 'environment');
-    else input.removeAttribute('capture');
-    setOverlayOpen('photo-source-overlay', false);
-    pendingPhotoInput = null;
-    // Defer so the overlay can close before the system picker opens
-    requestAnimationFrame(() => {
-      input.click();
-    });
+  for (const input of [inputMuebleCamera, inputMuebleGallery]) {
+    input?.addEventListener('change', () => onPhotoPicked(input, 'mueble'));
   }
-
-  inputMueble.addEventListener('change', async () => {
-    const file = inputMueble.files?.[0];
-    if (!file) return;
-    fotoMueble = await fileToDataUrl(file);
-    setPreview(mueblePreview, slotMueble, fotoMueble);
-    inputMueble.value = '';
-    markDirty();
-  });
-
-  inputEtiqueta.addEventListener('change', async () => {
-    const file = inputEtiqueta.files?.[0];
-    if (!file) return;
-    fotoEtiqueta = await fileToDataUrl(file);
-    setPreview(etiquetaPreview, slotEtiqueta, fotoEtiqueta);
-    inputEtiqueta.value = '';
-    markDirty();
-  });
-
-  slotMueble?.addEventListener('click', (ev) => {
-    const target = /** @type {HTMLElement} */ (ev.target);
-    if (target.closest('#clear-mueble')) return;
-    openPhotoSource(inputMueble, 'mueble');
-  });
-  slotEtiqueta?.addEventListener('click', (ev) => {
-    const target = /** @type {HTMLElement} */ (ev.target);
-    if (target.closest('#clear-etiqueta')) return;
-    openPhotoSource(inputEtiqueta, 'etiqueta');
-  });
-
-  document.getElementById('photo-source-camera')?.addEventListener('click', () => {
-    pickPhotoSource('camera');
-  });
-  document.getElementById('photo-source-gallery')?.addEventListener('click', () => {
-    pickPhotoSource('gallery');
-  });
-  document.getElementById('photo-source-cancel')?.addEventListener('click', closePhotoSource);
-  document.getElementById('photo-source-close')?.addEventListener('click', closePhotoSource);
-  document.getElementById('photo-source-overlay')?.addEventListener('click', (ev) => {
-    if (ev.target === ev.currentTarget) closePhotoSource();
-  });
+  for (const input of [inputEtiquetaCamera, inputEtiquetaGallery]) {
+    input?.addEventListener('change', () => onPhotoPicked(input, 'etiqueta'));
+  }
 
   document.getElementById('clear-mueble')?.addEventListener('click', (ev) => {
     ev.preventDefault();
@@ -515,20 +468,6 @@ export function initForm(callbacks) {
     fotoEtiqueta = null;
     setPreview(etiquetaPreview, slotEtiqueta, null);
     markDirty();
-  });
-  document.getElementById('clear-mueble')?.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter' || ev.key === ' ') {
-      ev.preventDefault();
-      ev.stopPropagation();
-      /** @type {HTMLElement} */ (ev.currentTarget).click();
-    }
-  });
-  document.getElementById('clear-etiqueta')?.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter' || ev.key === ' ') {
-      ev.preventDefault();
-      ev.stopPropagation();
-      /** @type {HTMLElement} */ (ev.currentTarget).click();
-    }
   });
 
   quickToggle?.addEventListener('change', () => {
@@ -638,11 +577,6 @@ export function initForm(callbacks) {
 
   document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape') return;
-    const photoSource = document.getElementById('photo-source-overlay');
-    if (photoSource?.classList.contains('open')) {
-      closePhotoSource();
-      return;
-    }
     if (overlay?.classList.contains('open')) tryCloseForm();
     else if (detailOverlay?.classList.contains('open')) closeDetail();
   });
