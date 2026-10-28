@@ -34,6 +34,7 @@
     }
     * { box-sizing: border-box; }
     html { height: 100%; }
+    [hidden] { display: none !important; }
     body {
       margin: 0; min-height: 100%; min-height: 100dvh;
       font-family: var(--font-body); color: var(--ink); background: var(--foam);
@@ -41,6 +42,10 @@
     }
     button, input, select { font: inherit; color: inherit; }
     button { cursor: pointer; border: none; background: none; }
+    :focus-visible {
+      outline: 2px solid rgba(232,160,84,0.85);
+      outline-offset: 2px;
+    }
     .atmosphere {
       position: fixed; inset: 0; pointer-events: none; z-index: 0;
       background:
@@ -71,7 +76,15 @@
       font-size: 0.78rem; font-weight: 700; color: var(--muted);
     }
     .status-pill .dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: #9aa8a2; }
+    .status-pill.is-live {
+      color: #145c3c; background: rgba(31,138,91,0.1);
+      border-color: rgba(31,138,91,0.28);
+    }
     .status-pill.is-live .dot { background: var(--ok); box-shadow: 0 0 0 3px rgba(31,138,91,0.18); }
+    .status-pill.is-local {
+      color: #6b4410; background: rgba(232,160,84,0.14);
+      border-color: rgba(232,160,84,0.35);
+    }
     .status-pill.is-local .dot { background: var(--sand); }
     .status-pill.is-error .dot { background: var(--danger); }
     .status-pill.is-button { cursor: pointer; }
@@ -94,6 +107,7 @@
       padding: 1.05rem 1.1rem; border-radius: 1.15rem;
       background: var(--navy); color: #f3f6f9;
       box-shadow: 0 16px 40px rgba(30,41,54,0.22);
+      transition: background 0.28s ease, box-shadow 0.28s ease;
     }
     .balance .label { margin: 0; font-size: 0.8rem; font-weight: 650; opacity: 0.72; }
     .balance .amount {
@@ -112,6 +126,9 @@
     .btn-primary { background: var(--navy); border-color: var(--navy); color: #f3f6f9; }
     .btn-ghost { background: transparent; }
     .btn-danger { color: var(--danger); }
+    .btn:disabled, .btn[disabled] {
+      opacity: 0.45; cursor: not-allowed;
+    }
     .btn-icon {
       width: 2.55rem; height: 2.55rem; padding: 0; display: grid; place-items: center;
       border-radius: 0.8rem; border: 1px solid var(--line); background: rgba(255,255,255,0.75);
@@ -135,11 +152,13 @@
       padding: 0.3rem; border-radius: 0.95rem; background: rgba(21,32,43,0.05);
     }
     .tabs button {
-      padding: 0.55rem 0.4rem; border-radius: 0.7rem; font-weight: 700;
+      padding: 0.6rem 0.4rem; border-radius: 0.7rem; font-weight: 700;
       font-size: 0.82rem; color: var(--muted);
+      transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
     }
     .tabs button.is-active {
-      background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(21,32,43,0.08);
+      background: var(--navy); color: #f3f6f9;
+      box-shadow: 0 6px 16px rgba(30,41,54,0.18);
     }
 
     .panel { display: none; flex-direction: column; gap: 0.7rem; }
@@ -150,7 +169,9 @@
       display: grid; grid-template-columns: 1fr auto; gap: 0.55rem; align-items: start;
       padding: 0.85rem 0.9rem; border-radius: 1rem; background: var(--panel);
       border: 1px solid var(--line); backdrop-filter: blur(8px);
+      cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease;
     }
+    .row:active { background: rgba(255,255,255,0.92); }
     .row .title { margin: 0; font-weight: 700; font-size: 0.98rem; letter-spacing: -0.01em; }
     .row .meta { margin: 0.25rem 0 0; font-size: 0.75rem; color: var(--muted); font-weight: 650; }
     .row .amt { font-weight: 800; font-size: 1rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -171,13 +192,21 @@
 
     .empty {
       padding: 2rem 1rem; text-align: center; color: var(--muted);
-      font-weight: 650; font-size: 0.92rem; line-height: 1.4;
+      font-weight: 650; font-size: 0.92rem; line-height: 1.45;
+      border: 1px dashed rgba(21,32,43,0.14); border-radius: 1rem;
+      background: rgba(255,255,255,0.35);
     }
     .banner {
       padding: 0.85rem 0.95rem; border-radius: 1rem;
       background: rgba(232,160,84,0.12); border: 1px solid rgba(232,160,84,0.28);
       font-size: 0.86rem; line-height: 1.4; color: var(--ink-soft);
     }
+    .banner.is-invite {
+      background: rgba(31,138,91,0.08); border-color: rgba(31,138,91,0.28);
+    }
+    .banner-body { display: flex; flex-direction: column; gap: 0.65rem; }
+    .banner-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+    .banner-actions .btn { padding: 0.45rem 0.75rem; font-size: 0.8rem; }
     .banner code {
       font-size: 0.8em; background: rgba(255,255,255,0.65);
       padding: 0.1rem 0.3rem; border-radius: 0.3rem;
@@ -205,7 +234,9 @@
       width: 3.5rem; height: 3.5rem; border-radius: 1.15rem;
       background: var(--navy); color: #f3f6f9; font-size: 1.75rem;
       box-shadow: 0 14px 32px rgba(30,41,54,0.3); display: grid; place-items: center;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
     }
+    .fab:active { transform: scale(0.94); }
 
     .sheet-backdrop {
       position: fixed; inset: 0; z-index: 40; background: rgba(21,32,43,0.35);
@@ -233,7 +264,7 @@
     .sheet p.lead { margin: 0 0 1rem; color: var(--muted); font-size: 0.9rem; line-height: 1.4; }
     .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.85rem; }
     .field label { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); }
-    .field .hint { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+    .field .hint { font-size: 0.8rem; color: var(--muted); font-weight: 600; line-height: 1.35; }
     .field input, .field select {
       width: 100%; padding: 0.8rem 0.9rem; border-radius: 0.8rem;
       border: 1px solid var(--line); background: #fff; outline: none;
@@ -281,61 +312,61 @@
     <a class="home-link" href="../">Apps</a>
     <header class="topbar">
       <h1 class="brand-mini">Compartido</h1>
-      <button type="button" class="status-pill is-local" id="status-pill" title="Estado">
+      <button type="button" class="status-pill is-local" id="status-pill" title="Solo en este dispositivo">
         <span class="dot" aria-hidden="true"></span>
-        <span id="status-text">Local</span>
+        <span id="status-text">Solo aquí</span>
       </button>
     </header>
 
     <div class="month-nav">
       <button type="button" class="icon-round" id="month-prev" aria-label="Mes anterior">‹</button>
-      <h2 id="month-label">octubre 2026</h2>
+      <h2 id="month-label" aria-live="polite">octubre 2026</h2>
       <button type="button" class="icon-round" id="month-next" aria-label="Mes siguiente">›</button>
     </div>
 
-    <section class="balance is-even" id="balance-card">
+    <section class="balance is-even" id="balance-card" aria-live="polite">
       <p class="label">Entre vosotros</p>
       <p class="amount" id="balance-amount">Estáis a mano</p>
       <p class="sub" id="balance-sub">Añade gastos para ver quién debe a quién (mitad cada uno).</p>
     </section>
 
     <div class="toolbar">
-      <button type="button" class="btn btn-primary" id="btn-sala">Empezar hogar</button>
-      <button type="button" class="btn" id="btn-apply-fixed">Aplicar fijos</button>
+      <button type="button" class="btn btn-primary" id="btn-sala">Crear o unirse</button>
+      <button type="button" class="btn" id="btn-apply-fixed" title="Copia los fijos al mes que estás viendo">Aplicar fijos</button>
       <div class="menu-wrap">
-        <button type="button" class="btn-icon" id="btn-more" aria-label="Más" aria-expanded="false">⋯</button>
-        <div class="menu" id="more-menu" hidden>
-          <button type="button" id="menu-import">Importar Excel/CSV</button>
-          <button type="button" id="menu-copy-code" hidden>Copiar código del hogar</button>
-          <button type="button" id="menu-settle">Ya nos hemos pagado este mes</button>
-          <button type="button" class="is-danger" id="menu-leave" hidden>Abandonar hogar…</button>
+        <button type="button" class="btn-icon" id="btn-more" aria-label="Más opciones" aria-expanded="false" aria-haspopup="true">⋯</button>
+        <div class="menu" id="more-menu" role="menu" hidden>
+          <button type="button" role="menuitem" id="menu-import">Importar Excel/CSV</button>
+          <button type="button" role="menuitem" id="menu-copy-code" hidden>Copiar código del hogar</button>
+          <button type="button" role="menuitem" id="menu-settle">Ya nos hemos pagado este mes</button>
+          <button type="button" role="menuitem" class="is-danger" id="menu-leave" hidden>Abandonar hogar…</button>
         </div>
       </div>
     </div>
 
     <div class="banner" id="setup-banner" hidden></div>
 
-    <div class="tabs" role="tablist">
-      <button type="button" class="is-active" data-tab="month">Este mes</button>
-      <button type="button" data-tab="fixed">Fijos</button>
-      <button type="button" data-tab="forecast">Previsión</button>
+    <div class="tabs" role="tablist" aria-label="Secciones">
+      <button type="button" role="tab" class="is-active" data-tab="month" aria-selected="true" aria-controls="panel-month" id="tab-month">Este mes</button>
+      <button type="button" role="tab" data-tab="fixed" aria-selected="false" aria-controls="panel-fixed" id="tab-fixed">Fijos</button>
+      <button type="button" role="tab" data-tab="forecast" aria-selected="false" aria-controls="panel-forecast" id="tab-forecast">Previsión</button>
     </div>
 
-    <section class="panel is-active" id="panel-month">
+    <section class="panel is-active" id="panel-month" role="tabpanel" aria-labelledby="tab-month">
       <ul class="list" id="expense-list"></ul>
       <p class="empty" id="expense-empty">No hay gastos este mes. Pulsa + para añadir, o «Aplicar fijos».</p>
     </section>
 
-    <section class="panel" id="panel-fixed">
+    <section class="panel" id="panel-fixed" role="tabpanel" aria-labelledby="tab-fixed" hidden>
       <p class="lead" style="margin:0;color:var(--muted);font-size:0.9rem;font-weight:650">
         Gastos que se repiten cada mes (hipoteca, coche, luz…). Luego «Aplicar fijos» los mete en el mes actual.
       </p>
       <ul class="list" id="fixed-list"></ul>
-      <p class="empty" id="fixed-empty">Sin gastos fijos todavía. Añade hipoteca, servicios, etc.</p>
+      <p class="empty" id="fixed-empty">Sin gastos fijos todavía. Pulsa «Añadir fijo» o el +.</p>
       <button type="button" class="btn btn-primary" id="btn-add-fixed">Añadir fijo</button>
     </section>
 
-    <section class="panel" id="panel-forecast">
+    <section class="panel" id="panel-forecast" role="tabpanel" aria-labelledby="tab-forecast" hidden>
       <div class="forecast-card">
         <h3 id="forecast-title">Mes que viene</h3>
         <p class="big" id="forecast-total">0 €</p>
@@ -345,7 +376,7 @@
     </section>
   </div>
 
-  <button type="button" class="fab" id="fab-add" aria-label="Añadir gasto">+</button>
+  <button type="button" class="fab" id="fab-add" aria-label="Añadir gasto" title="Añadir gasto">+</button>
   <div class="toast" id="toast" role="status"></div>
   <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
 
@@ -361,7 +392,7 @@
       </div>
       <div class="field">
         <label for="expense-amount">Importe (€)</label>
-        <input id="expense-amount" inputmode="decimal" required placeholder="32,50" />
+        <input id="expense-amount" inputmode="decimal" required placeholder="Ej. 32,50" autocomplete="off" />
       </div>
       <div class="field">
         <label for="expense-date">Fecha</label>
@@ -374,7 +405,7 @@
       <div class="field">
         <label for="expense-paidby">Lo pagó</label>
         <select id="expense-paidby"></select>
-        <span class="hint">Cuenta compartida = domiciliado / dinero común (no genera deuda entre vosotros).</span>
+        <span class="hint">«Cuenta compartida» = domiciliado o dinero común. No genera deuda entre vosotros.</span>
       </div>
       <p class="error" id="expense-error" hidden></p>
       <div class="row-actions">
@@ -396,7 +427,7 @@
       </div>
       <div class="field">
         <label for="fixed-amount">Importe (€)</label>
-        <input id="fixed-amount" inputmode="decimal" required placeholder="750" />
+        <input id="fixed-amount" inputmode="decimal" required placeholder="Ej. 750" autocomplete="off" />
       </div>
       <div class="field">
         <label for="fixed-category">Categoría</label>
@@ -405,7 +436,7 @@
       <div class="field">
         <label for="fixed-paidby">Suele pagar</label>
         <select id="fixed-paidby"></select>
-        <span class="hint">Si sale de la cuenta conjunta, elige Cuenta compartida.</span>
+        <span class="hint">Si sale de la cuenta conjunta, elige «Cuenta compartida» (sin deuda).</span>
       </div>
       <p class="error" id="fixed-error" hidden></p>
       <div class="row-actions">
@@ -831,18 +862,22 @@
       if (state.syncError) {
         pill.classList.add("is-error");
         text.textContent = "Error";
+        pill.title = state.syncError;
       } else if (state.mode === "room") {
         pill.classList.add("is-live", "is-button");
-        text.textContent = state.session?.code || "Sala";
+        text.textContent = state.session?.code || "Hogar";
+        pill.title = "Toca para copiar el código del hogar";
       } else {
         pill.classList.add("is-local");
-        text.textContent = "Local";
+        text.textContent = "Solo aquí";
+        pill.title = "Sin sincronizar: solo en este dispositivo. Crea o únete a un hogar para compartir.";
       }
 
       const d = parseMonthKey(state.monthKey);
       $("#month-label").textContent = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 
       const banner = $("#setup-banner");
+      banner.classList.remove("is-invite");
       if (!firebaseReady) {
         banner.hidden = false;
         banner.innerHTML = "Para usarlo con tu pareja hace falta Firebase (mismo proyecto que Tareas). Publica también las rules de <code>compartido/firestore.rules</code> (añaden la colección <code>homes</code>).";
@@ -851,12 +886,26 @@
         banner.textContent = state.syncError;
       } else if (state.mode === "local") {
         banner.hidden = false;
-        banner.textContent = "Crea o únete a vuestro hogar (una sola sala, para siempre). Luego podéis importar un Excel/CSV.";
+        banner.innerHTML = `<div class="banner-body">
+          <span>Crea o únete a vuestro hogar (una sola sala, para siempre). Luego podéis importar un Excel/CSV.</span>
+          <div class="banner-actions">
+            <button type="button" class="btn btn-primary" id="banner-start-home">Crear o unirse</button>
+          </div>
+        </div>`;
       } else if (homeMemberCount() < 2) {
         banner.hidden = false;
-        banner.textContent = `Hogar ${state.session?.code || ""} activo. Invita a tu pareja con el código; cuando entre, os quedáis aquí.`;
+        banner.classList.add("is-invite");
+        const code = escapeHtml(state.session?.code || "");
+        banner.innerHTML = `<div class="banner-body">
+          <span>Hogar <code>${code}</code> listo. Pásale el código a tu pareja; este aviso se queda hasta que entre.</span>
+          <div class="banner-actions">
+            <button type="button" class="btn btn-primary" id="banner-invite">Invitar / ver código</button>
+            <button type="button" class="btn" id="banner-copy-code">Copiar código</button>
+          </div>
+        </div>`;
       } else {
         banner.hidden = true;
+        banner.innerHTML = "";
       }
 
       const salaBtn = $("#btn-sala");
@@ -869,7 +918,7 @@
         }
       } else {
         salaBtn.hidden = false;
-        salaBtn.textContent = "Empezar hogar";
+        salaBtn.textContent = "Crear o unirse";
       }
       $("#menu-leave").hidden = state.mode !== "room";
       $("#menu-copy-code").hidden = state.mode !== "room";
@@ -885,7 +934,7 @@
       if (settled) {
         card.classList.add("is-even");
         $("#balance-amount").textContent = "Ya estáis pagados";
-        $("#balance-sub").textContent = `Marcado como saldado este mes. Total gastado ${formatEuro(bal.total || 0)}.${sharedNote}`;
+        $("#balance-sub").textContent = `Cuenta cerrada este mes. Total gastado ${formatEuro(bal.total || 0)}.${sharedNote}`;
       } else if (!bal.total) {
         card.classList.add("is-even");
         $("#balance-amount").textContent = "Sin movimientos";
@@ -907,14 +956,38 @@
           `Tú adelantaste ${formatEuro(bal.paidA)} · ${memberName(bal.b)} adelantó ${formatEuro(bal.paidB)}.${sharedNote}`;
       }
 
-      // Tabs
+      // Tabs + panels
       document.querySelectorAll(".tabs [data-tab]").forEach((b) => {
-        b.classList.toggle("is-active", b.dataset.tab === state.tab);
+        const on = b.dataset.tab === state.tab;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+        b.tabIndex = on ? 0 : -1;
       });
-      $("#panel-month").classList.toggle("is-active", state.tab === "month");
-      $("#panel-fixed").classList.toggle("is-active", state.tab === "fixed");
-      $("#panel-forecast").classList.toggle("is-active", state.tab === "forecast");
-      $("#fab-add").hidden = state.tab === "forecast";
+      [["panel-month", "month"], ["panel-fixed", "fixed"], ["panel-forecast", "forecast"]].forEach(([id, tab]) => {
+        const panel = $(`#${id}`);
+        const on = state.tab === tab;
+        panel.classList.toggle("is-active", on);
+        panel.hidden = !on;
+      });
+      const fab = $("#fab-add");
+      fab.hidden = state.tab === "forecast";
+      const fabLabel = state.tab === "fixed" ? "Añadir fijo" : "Añadir gasto";
+      fab.setAttribute("aria-label", fabLabel);
+      fab.title = fabLabel;
+
+      // Apply fijos affordance
+      const activeFixed = state.recurring.filter((r) => r.active !== false);
+      const appliedIds = new Set(
+        monthExpenses().filter((e) => e.recurringId).map((e) => e.recurringId)
+      );
+      const pendingFixed = activeFixed.filter((r) => !appliedIds.has(r.id)).length;
+      const applyBtn = $("#btn-apply-fixed");
+      applyBtn.disabled = !activeFixed.length || !pendingFixed;
+      applyBtn.title = !activeFixed.length
+        ? "Primero añade fijos en la pestaña Fijos"
+        : !pendingFixed
+          ? "Los fijos ya están en este mes"
+          : `Meter ${pendingFixed} fijo${pendingFixed === 1 ? "" : "s"} en este mes`;
 
       // Month expenses
       const expenses = monthExpenses();
@@ -923,6 +996,9 @@
       if (!expenses.length) {
         list.innerHTML = "";
         empty.hidden = false;
+        empty.textContent = activeFixed.length && pendingFixed
+          ? "No hay gastos este mes. Pulsa + o «Aplicar fijos»."
+          : "No hay gastos este mes. Pulsa + para añadir el primero.";
       } else {
         empty.hidden = true;
         list.innerHTML = expenses.map((e) => {
@@ -931,7 +1007,7 @@
             e.kind === "fixed" ? `<span class="tag">Fijo</span>` : `<span class="tag is-var">${escapeHtml(catLabel(e.category))}</span>`,
             isShared ? `<span class="tag is-shared">Compartida</span>` : "",
           ].join("");
-          return `<li class="row${isShared ? " is-shared" : ""}" data-id="${e.id}">
+          return `<li class="row${isShared ? " is-shared" : ""}" data-id="${e.id}" data-row-expense="${e.id}" tabindex="0" aria-label="${escapeHtml(e.name)}">
             <div>
               <p class="title">${escapeHtml(e.name)}${tags}</p>
               <p class="meta">${escapeHtml(e.date || "")} · pagó ${escapeHtml(memberName(e.paidBy))}</p>
@@ -946,8 +1022,7 @@
       }
 
       // Fixed
-      const fixed = [...state.recurring].filter((r) => r.active !== false)
-        .sort((a, b) => a.name.localeCompare(b.name, "es"));
+      const fixed = [...activeFixed].sort((a, b) => a.name.localeCompare(b.name, "es"));
       const fl = $("#fixed-list");
       const fe = $("#fixed-empty");
       if (!fixed.length) {
@@ -955,7 +1030,7 @@
         fe.hidden = false;
       } else {
         fe.hidden = true;
-        fl.innerHTML = fixed.map((r) => `<li class="row" data-id="${r.id}">
+        fl.innerHTML = fixed.map((r) => `<li class="row" data-id="${r.id}" data-row-fixed="${r.id}" tabindex="0" aria-label="${escapeHtml(r.name)}">
           <div>
             <p class="title">${escapeHtml(r.name)}<span class="tag">${escapeHtml(catLabel(r.category))}</span></p>
             <p class="meta">Suele pagar ${escapeHtml(memberName(r.paidBy))}</p>
@@ -974,8 +1049,8 @@
       $("#forecast-title").textContent = `${MONTHS[nd.getMonth()]} ${nd.getFullYear()}`;
       $("#forecast-total").textContent = formatEuro(fc.total);
       $("#forecast-blurb").textContent = fc.varAvg
-        ? `Fijos ${formatEuro(fc.fixedTotal)} + variables ~${formatEuro(fc.varAvg)} (media reciente).`
-        : `Fijos ${formatEuro(fc.fixedTotal)}. Aún no hay variables para estimar.`;
+        ? `Se calcula solo: fijos (${formatEuro(fc.fixedTotal)}) + media de variables de los últimos meses (~${formatEuro(fc.varAvg)}).`
+        : `Se calcula solo con tus fijos (${formatEuro(fc.fixedTotal)}). Cuando haya variables, estimará también esa parte.`;
       $("#forecast-breakdown").innerHTML = [
         ...fc.fixedItems.map((r) => `<li><span>${escapeHtml(r.name)}</span><span>${formatEuro(r.amount)}</span></li>`),
         fc.varAvg ? `<li><span>Variables (estimación)</span><span>${formatEuro(fc.varAvg)}</span></li>` : "",
@@ -1188,7 +1263,7 @@
     async function applyFixedToMonth() {
       const active = state.recurring.filter((r) => r.active !== false);
       if (!active.length) {
-        toast("No hay fijos");
+        toast("Aún no hay fijos. Añádelos en la pestaña Fijos.");
         return;
       }
       const existing = new Set(
@@ -1196,7 +1271,7 @@
       );
       const toAdd = active.filter((r) => !existing.has(r.id));
       if (!toAdd.length) {
-        toast("Los fijos ya están este mes");
+        toast("Los fijos ya están en este mes");
         return;
       }
       const day = "01";
@@ -1225,7 +1300,7 @@
 
     async function settleMonth() {
       if (isMonthSettled()) {
-        toast("Ya estaba saldado");
+        toast("Este mes ya estaba marcado como pagado");
         return;
       }
       if (!confirm("¿Confirmáis que ya os habéis pagado lo que os debíais este mes? Los gastos no se borran; solo se marca la cuenta como cerrada.")) return;
@@ -1241,7 +1316,7 @@
         persistIfLocal();
         render();
       }
-      toast("Mes saldado");
+      toast("Mes marcado como pagado");
     }
 
     // ---- UI events ----
@@ -1370,6 +1445,21 @@
       state.tab = btn.dataset.tab;
       render();
     });
+    document.querySelector(".tabs").addEventListener("keydown", (e) => {
+      const tabs = [...document.querySelectorAll(".tabs [data-tab]")];
+      const i = tabs.indexOf(document.activeElement);
+      if (i < 0) return;
+      let next = -1;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (i + 1) % tabs.length;
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (i - 1 + tabs.length) % tabs.length;
+      if (e.key === "Home") next = 0;
+      if (e.key === "End") next = tabs.length - 1;
+      if (next < 0) return;
+      e.preventDefault();
+      state.tab = tabs[next].dataset.tab;
+      render();
+      tabs[next].focus();
+    });
 
     $("#btn-more").addEventListener("click", (e) => {
       e.stopPropagation();
@@ -1384,8 +1474,7 @@
     $("#menu-settle").addEventListener("click", () => { closeMenu(); settleMonth(); });
     $("#menu-leave").addEventListener("click", () => {
       closeMenu();
-      if (!confirm("El hogar es permanente. ¿Seguro que quieres abandonarlo en ESTE dispositivo? Los datos en la nube siguen; podrás volver a entrar con el código.")) return;
-      if (!confirm("Última confirmación: abandonar hogar en este móvil/ordenador.")) return;
+      if (!confirm("¿Abandonar el hogar en ESTE dispositivo?\n\nLos datos en la nube no se borran. Podrás volver a entrar con el mismo código. El hogar es permanente: no lo uses para «probar».")) return;
       leaveHome();
     });
     $("#menu-copy-code").addEventListener("click", async () => {
@@ -1464,34 +1553,72 @@
     });
 
     $("#expense-list").addEventListener("click", async (e) => {
-      const edit = e.target.closest("[data-edit-expense]");
-      if (edit) {
-        const item = state.expenses.find((x) => x.id === edit.dataset.editExpense);
-        if (item) openExpense(item);
-        return;
-      }
       const del = e.target.closest("[data-del-expense]");
       if (del) {
+        e.stopPropagation();
         const item = state.expenses.find((x) => x.id === del.dataset.delExpense);
         if (!confirm(`¿Eliminar "${item?.name || "este gasto"}"?`)) return;
         await removeExpense(del.dataset.delExpense);
         toast("Eliminado");
+        return;
       }
+      if (e.target.closest(".actions") && !e.target.closest("[data-edit-expense]")) return;
+      const edit = e.target.closest("[data-edit-expense], [data-row-expense]");
+      if (edit) {
+        const id = edit.dataset.editExpense || edit.dataset.rowExpense;
+        const item = state.expenses.find((x) => x.id === id);
+        if (item) openExpense(item);
+      }
+    });
+    $("#expense-list").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const row = e.target.closest("[data-row-expense]");
+      if (!row || e.target.closest("button")) return;
+      e.preventDefault();
+      const item = state.expenses.find((x) => x.id === row.dataset.rowExpense);
+      if (item) openExpense(item);
     });
 
     $("#fixed-list").addEventListener("click", async (e) => {
-      const edit = e.target.closest("[data-edit-fixed]");
-      if (edit) {
-        const item = state.recurring.find((x) => x.id === edit.dataset.editFixed);
-        if (item) openFixed(item);
-        return;
-      }
       const del = e.target.closest("[data-del-fixed]");
       if (del) {
+        e.stopPropagation();
         const item = state.recurring.find((x) => x.id === del.dataset.delFixed);
         if (!confirm(`¿Eliminar el fijo "${item?.name || ""}"?`)) return;
         await removeFixed(del.dataset.delFixed);
         toast("Fijo eliminado");
+        return;
+      }
+      if (e.target.closest(".actions") && !e.target.closest("[data-edit-fixed]")) return;
+      const edit = e.target.closest("[data-edit-fixed], [data-row-fixed]");
+      if (edit) {
+        const id = edit.dataset.editFixed || edit.dataset.rowFixed;
+        const item = state.recurring.find((x) => x.id === id);
+        if (item) openFixed(item);
+      }
+    });
+    $("#fixed-list").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const row = e.target.closest("[data-row-fixed]");
+      if (!row || e.target.closest("button")) return;
+      e.preventDefault();
+      const item = state.recurring.find((x) => x.id === row.dataset.rowFixed);
+      if (item) openFixed(item);
+    });
+
+    $("#setup-banner").addEventListener("click", async (e) => {
+      if (e.target.closest("#banner-start-home") || e.target.closest("#banner-invite")) {
+        openSala();
+        return;
+      }
+      const copyBtn = e.target.closest("#banner-copy-code");
+      if (copyBtn) {
+        const code = state.session?.code;
+        if (!code) return;
+        try {
+          await navigator.clipboard.writeText(code);
+          toast("Código copiado");
+        } catch { toast(code); }
       }
     });
 
