@@ -892,10 +892,10 @@
         banner.classList.add("is-invite");
         const code = escapeHtml(state.session?.code || "");
         banner.innerHTML = `<div class="banner-body">
-          <span>Hogar <code>${code}</code> listo. Pásale el código a tu pareja; este aviso se queda hasta que entre.</span>
+          <span>Hogar <code>${code}</code> listo. Este aviso se queda hasta que entre tu pareja.</span>
           <div class="banner-actions">
-            <button type="button" class="btn btn-primary" id="banner-invite">Invitar / ver código</button>
-            <button type="button" class="btn" id="banner-copy-code">Copiar código</button>
+            <button type="button" class="btn btn-primary" id="banner-copy-code">Copiar código</button>
+            <button type="button" class="btn" id="banner-invite">Ver código grande</button>
           </div>
         </div>`;
       } else {
@@ -1179,7 +1179,7 @@
       toast("Has salido del hogar en este dispositivo");
     }
 
-    async function upsertExpense(data, id) {
+    async function upsertExpense(data, id, { merge = false } = {}) {
       const payload = {
         name: data.name,
         amount: data.amount,
@@ -1196,17 +1196,34 @@
       if (state.mode === "room" && db && state.session) {
         const eid = id || uid();
         const ref = doc(db, "homes", state.session.code, "expenses", eid);
-        if (id) await updateDoc(ref, payload);
-        else await setDoc(ref, { ...payload, createdAt: Date.now(), serverCreatedAt: serverTimestamp() });
+        if (id && !merge) await updateDoc(ref, payload);
+        else if (merge && id) {
+          await setDoc(ref, {
+            ...payload,
+            createdAt: Date.now(),
+            serverCreatedAt: serverTimestamp(),
+          }, { merge: true });
+        } else {
+          await setDoc(ref, {
+            ...payload,
+            createdAt: Date.now(),
+            serverCreatedAt: serverTimestamp(),
+          });
+        }
       } else {
-        if (id) {
+        if (id && state.expenses.some((e) => e.id === id)) {
           state.expenses = state.expenses.map((e) => e.id === id ? { ...e, ...payload } : e);
         } else {
-          state.expenses = [{ id: uid(), ...payload, createdAt: Date.now() }, ...state.expenses];
+          state.expenses = [{ id: id || uid(), ...payload, createdAt: Date.now() }, ...state.expenses];
         }
         persistIfLocal();
         render();
       }
+    }
+
+    function fixedExpenseId(monthKey, recurringId) {
+      // ID estable → un segundo «Aplicar fijos» sobrescribe, no duplica
+      return `f-${monthKey}-${recurringId}`.replace(/[^a-zA-Z0-9_-]/g, "_");
     }
 
     async function removeExpense(id) {
@@ -1255,42 +1272,89 @@
       }
     }
 
+    let applyingFixed = false;
+
+    async function removeDuplicateFixedInMonth() {
+      const groups = new Map();
+      for (const e of monthExpenses()) {
+        if (!e.recurringId) continue;
+        const list = groups.get(e.recurringId) || [];
+        list.push(e);
+        groups.set(e.recurringId, list);
+      }
+      let removed = 0;
+      for (const [, list] of groups) {
+        if (list.length < 2) continue;
+        const preferredId = fixedExpenseId(state.monthKey, list[0].recurringId);
+        const keep = list.find((e) => e.id === preferredId)
+          || [...list].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))[0];
+        for (const dup of list) {
+          if (dup.id === keep.id) continue;
+          await removeExpense(dup.id);
+          removed += 1;
+        }
+      }
+      return removed;
+    }
+
     async function applyFixedToMonth() {
+      if (applyingFixed) {
+        toast("Ya se están aplicando los fijos…");
+        return;
+      }
       const active = state.recurring.filter((r) => r.active !== false);
       if (!active.length) {
         toast("Aún no hay fijos. Añádelos en la pestaña Fijos.");
         return;
       }
-      const existing = new Set(
-        monthExpenses().filter((e) => e.recurringId).map((e) => e.recurringId)
-      );
-      const toAdd = active.filter((r) => !existing.has(r.id));
-      if (!toAdd.length) {
-        toast("Los fijos ya están en este mes");
-        return;
-      }
-      const day = "01";
-      const date = `${state.monthKey}-${day}`;
-      for (const r of toAdd) {
-        let paidBy = r.paidBy;
-        if (paidBy === SHARED_PAYER || paidBy === "shared") {
-          paidBy = SHARED_PAYER;
-        } else if (state.mode === "room" && paidBy && !state.members[paidBy]) {
-          paidBy = meId();
-        } else if (state.mode === "local" && paidBy !== "me" && paidBy !== "other") {
-          paidBy = "me";
+
+      applyingFixed = true;
+      const applyBtn = $("#btn-apply-fixed");
+      applyBtn.disabled = true;
+      try {
+        // Limpia duplicados de clics previos (mismo recurringId en el mes)
+        const cleaned = await removeDuplicateFixedInMonth();
+
+        const existing = new Set(
+          monthExpenses().filter((e) => e.recurringId).map((e) => e.recurringId)
+        );
+        // Reserva inmediata: evita un segundo clic concurrente
+        const toAdd = active.filter((r) => !existing.has(r.id));
+        for (const r of toAdd) existing.add(r.id);
+
+        if (!toAdd.length) {
+          toast(cleaned
+            ? (cleaned === 1 ? "Duplicado eliminado. Los fijos ya estaban" : `${cleaned} duplicados eliminados. Los fijos ya estaban`)
+            : "Los fijos ya están en este mes");
+          return;
         }
-        await upsertExpense({
-          name: r.name,
-          amount: r.amount,
-          date,
-          kind: "fixed",
-          category: r.category || "otros",
-          recurringId: r.id,
-          paidBy,
-        });
+
+        const date = `${state.monthKey}-01`;
+        for (const r of toAdd) {
+          let paidBy = r.paidBy;
+          if (paidBy === SHARED_PAYER || paidBy === "shared") {
+            paidBy = SHARED_PAYER;
+          } else if (state.mode === "room" && paidBy && !state.members[paidBy]) {
+            paidBy = meId();
+          } else if (state.mode === "local" && paidBy !== "me" && paidBy !== "other") {
+            paidBy = "me";
+          }
+          const eid = fixedExpenseId(state.monthKey, r.id);
+          await upsertExpense({
+            name: r.name,
+            amount: r.amount,
+            date,
+            kind: "fixed",
+            category: r.category || "otros",
+            recurringId: r.id,
+            paidBy,
+          }, eid, { merge: true });
+        }
+        toast(toAdd.length === 1 ? "Añadido 1 fijo" : `Añadidos ${toAdd.length} fijos`);
+      } finally {
+        applyingFixed = false;
+        render();
       }
-      toast(toAdd.length === 1 ? "Añadido 1 fijo" : `Añadidos ${toAdd.length} fijos`);
     }
 
     async function settleMonth() {
