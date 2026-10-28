@@ -166,6 +166,8 @@
       font-size: 0.65rem; font-weight: 800; vertical-align: middle;
     }
     .tag.is-var { background: rgba(30,41,54,0.08); color: var(--ink-soft); }
+    .tag.is-shared { background: rgba(31,138,91,0.14); color: #145c3c; }
+    .row.is-shared { border-color: rgba(31,138,91,0.22); }
 
     .empty {
       padding: 2rem 1rem; text-align: center; color: var(--muted);
@@ -292,20 +294,20 @@
     </div>
 
     <section class="balance is-even" id="balance-card">
-      <p class="label">Balance del mes</p>
+      <p class="label">Entre vosotros</p>
       <p class="amount" id="balance-amount">Estáis a mano</p>
       <p class="sub" id="balance-sub">Añade gastos para ver quién debe a quién (mitad cada uno).</p>
     </section>
 
     <div class="toolbar">
       <button type="button" class="btn btn-primary" id="btn-sala">Empezar hogar</button>
-      <button type="button" class="btn" id="btn-apply-fixed">Meter fijos</button>
-      <button type="button" class="btn" id="btn-import">Importar</button>
+      <button type="button" class="btn" id="btn-apply-fixed">Aplicar fijos</button>
       <div class="menu-wrap">
         <button type="button" class="btn-icon" id="btn-more" aria-label="Más" aria-expanded="false">⋯</button>
         <div class="menu" id="more-menu" hidden>
+          <button type="button" id="menu-import">Importar Excel/CSV</button>
           <button type="button" id="menu-copy-code" hidden>Copiar código del hogar</button>
-          <button type="button" id="menu-settle">Marcar saldado</button>
+          <button type="button" id="menu-settle">Ya nos hemos pagado este mes</button>
           <button type="button" class="is-danger" id="menu-leave" hidden>Abandonar hogar…</button>
         </div>
       </div>
@@ -321,15 +323,15 @@
 
     <section class="panel is-active" id="panel-month">
       <ul class="list" id="expense-list"></ul>
-      <p class="empty" id="expense-empty">No hay gastos este mes. Añade uno o mete los fijos.</p>
+      <p class="empty" id="expense-empty">No hay gastos este mes. Pulsa + para añadir, o «Aplicar fijos».</p>
     </section>
 
     <section class="panel" id="panel-fixed">
       <p class="lead" style="margin:0;color:var(--muted);font-size:0.9rem;font-weight:650">
-        Plantillas que se repiten cada mes (alquiler, luz…). Púlsalas en «Meter fijos».
+        Gastos que se repiten cada mes (hipoteca, coche, luz…). Luego «Aplicar fijos» los mete en el mes actual.
       </p>
       <ul class="list" id="fixed-list"></ul>
-      <p class="empty" id="fixed-empty">Sin gastos fijos. Usa + en esta pestaña para crear uno.</p>
+      <p class="empty" id="fixed-empty">Sin gastos fijos todavía. Añade hipoteca, servicios, etc.</p>
       <button type="button" class="btn btn-primary" id="btn-add-fixed">Añadir fijo</button>
     </section>
 
@@ -337,7 +339,7 @@
       <div class="forecast-card">
         <h3 id="forecast-title">Mes que viene</h3>
         <p class="big" id="forecast-total">0 €</p>
-        <p class="lead" style="margin:0.4rem 0 0" id="forecast-blurb">Suma de fijos + media de variables recientes.</p>
+        <p class="lead" style="margin:0.4rem 0 0" id="forecast-blurb">Estimación automática: fijos + media de variables de meses recientes.</p>
         <ul id="forecast-breakdown"></ul>
       </div>
     </section>
@@ -471,9 +473,9 @@
   <div class="sheet" id="import-sheet" hidden>
     <div class="sheet-handle" aria-hidden="true"></div>
     <h2>Importar gastos</h2>
-    <p class="lead">Sube un CSV o Excel (.xlsx). En Drive: Archivo → Descargar → Excel o CSV.</p>
+    <p class="lead">Elige un archivo de este dispositivo. Si está en Drive, descárgalo antes (Archivo → Descargar → Excel o CSV) y súbelo aquí.</p>
     <div class="field">
-      <label for="import-file">Archivo</label>
+      <label for="import-file">Archivo CSV o Excel</label>
       <input id="import-file" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
       <span class="hint">Columnas: fecha, concepto, importe, categoria, pagado_por (yo / pareja / compartida / nombre)</span>
     </div>
@@ -711,11 +713,11 @@
     function memberName(id) {
       if (!id) return "—";
       if (id === SHARED_PAYER || id === "shared") return "Cuenta compartida";
-      if (state.mode === "local" && !state.members[id]) {
-        if (id === "me") return loadName() || "Yo";
-        if (id === "other") return "Pareja";
-      }
-      return state.members[id]?.name || "Alguien";
+      if (id === meId()) return state.session?.name || loadName() || "Yo";
+      if (id === "me") return loadName() || "Yo";
+      if (id === "other") return "Tu pareja";
+      if (state.members[id]?.name) return state.members[id].name;
+      return "Tu pareja";
     }
     function meId() {
       return state.session?.memberId || "me";
@@ -729,19 +731,30 @@
 
     function fillPaidBySelect(select, selected = "") {
       const opts = [];
+      const seen = new Set();
       if (state.mode === "room" && state.session) {
-        opts.push(`<option value="${state.session.memberId}">Yo (${escapeHtml(state.session.name)})</option>`);
+        const myId = state.session.memberId;
+        opts.push(`<option value="${myId}">Yo (${escapeHtml(state.session.name)})</option>`);
+        seen.add(myId);
         for (const [id, m] of Object.entries(state.members)) {
-          if (id === state.session.memberId) continue;
-          opts.push(`<option value="${id}">${escapeHtml(m.name)}</option>`);
+          if (seen.has(id)) continue;
+          const name = String(m.name || "").trim();
+          // Evita duplicar si la misma persona reentró con otro id
+          if (name && name.toLowerCase() === String(state.session.name || "").toLowerCase()) continue;
+          seen.add(id);
+          opts.push(`<option value="${id}">${escapeHtml(name || "Pareja")}</option>`);
+        }
+        if (opts.length === 1) {
+          opts.push(`<option value="other">Tu pareja</option>`);
         }
       } else {
         opts.push(`<option value="me">Yo</option>`);
-        opts.push(`<option value="other">Pareja</option>`);
+        opts.push(`<option value="other">Tu pareja</option>`);
       }
       opts.push(`<option value="${SHARED_PAYER}">Cuenta compartida</option>`);
       select.innerHTML = opts.join("");
       if (selected && [...select.options].some((o) => o.value === selected)) select.value = selected;
+      else select.selectedIndex = 0;
     }
 
     function monthExpenses() {
@@ -852,7 +865,7 @@
           salaBtn.hidden = true;
         } else {
           salaBtn.hidden = false;
-          salaBtn.textContent = "Invitar";
+          salaBtn.textContent = "Invitar pareja";
         }
       } else {
         salaBtn.hidden = false;
@@ -867,27 +880,33 @@
       const settled = isMonthSettled();
       card.classList.remove("is-even", "is-owe");
       const sharedNote = bal.shared
-        ? ` · ${formatEuro(bal.shared)} desde cuenta compartida`
+        ? ` Cuenta compartida: ${formatEuro(bal.shared)} (no cuenta para la deuda).`
         : "";
       if (settled) {
         card.classList.add("is-even");
-        $("#balance-amount").textContent = "Mes saldado";
-        $("#balance-sub").textContent = `Total del mes ${formatEuro(bal.total || 0)} · marcado como arreglado${sharedNote}.`;
+        $("#balance-amount").textContent = "Ya estáis pagados";
+        $("#balance-sub").textContent = `Marcado como saldado este mes. Total gastado ${formatEuro(bal.total || 0)}.${sharedNote}`;
       } else if (!bal.total) {
         card.classList.add("is-even");
         $("#balance-amount").textContent = "Sin movimientos";
-        $("#balance-sub").textContent = "Cuando haya gastos, verás quién debe a quién (50/50). La cuenta compartida no genera deuda.";
+        $("#balance-sub").textContent = "Los gastos a medias generan una deuda clara. Lo de la cuenta compartida no.";
       } else if (Math.abs(bal.delta) < 0.005) {
         card.classList.add("is-even");
         $("#balance-amount").textContent = "Estáis a mano";
-        $("#balance-sub").textContent = `Total ${formatEuro(bal.total)}${sharedNote}.`;
+        $("#balance-sub").textContent = `Cada uno ha cubierto su mitad. Total ${formatEuro(bal.total)}.${sharedNote}`;
       } else {
         card.classList.add("is-owe");
         const creditor = bal.delta > 0 ? bal.a : bal.b;
         const debtor = bal.delta > 0 ? bal.b : bal.a;
         const amount = Math.abs(bal.delta);
-        $("#balance-amount").textContent = `${memberName(debtor)} debe ${formatEuro(amount)}`;
-        $("#balance-sub").textContent = `a ${memberName(creditor)} · Adelantos ${formatEuro(bal.paidA)} / ${formatEuro(bal.paidB)}${sharedNote}`;
+        const debtorLabel = debtor === meId() || debtor === "me" ? "Tú" : memberName(debtor);
+        const creditorLabel = creditor === meId() || creditor === "me" ? "ti" : memberName(creditor);
+        $("#balance-amount").textContent =
+          debtorLabel === "Tú"
+            ? `Debes ${formatEuro(amount)} a ${memberName(creditor)}`
+            : `${debtorLabel} te debe ${formatEuro(amount)}`;
+        $("#balance-sub").textContent =
+          `Tú adelantaste ${formatEuro(bal.paidA)} · ${memberName(bal.b)} adelantó ${formatEuro(bal.paidB)}.${sharedNote}`;
       }
 
       // Tabs
@@ -909,13 +928,15 @@
       } else {
         empty.hidden = true;
         list.innerHTML = expenses.map((e) => {
-          const tag = e.kind === "fixed"
-            ? `<span class="tag">Fijo</span>`
-            : `<span class="tag is-var">${escapeHtml(catLabel(e.category))}</span>`;
-          return `<li class="row" data-id="${e.id}">
+          const isShared = e.paidBy === SHARED_PAYER || e.paidBy === "shared";
+          const tags = [
+            e.kind === "fixed" ? `<span class="tag">Fijo</span>` : `<span class="tag is-var">${escapeHtml(catLabel(e.category))}</span>`,
+            isShared ? `<span class="tag is-shared">Compartida</span>` : "",
+          ].join("");
+          return `<li class="row${isShared ? " is-shared" : ""}" data-id="${e.id}">
             <div>
-              <p class="title">${escapeHtml(e.name)}${tag}</p>
-              <p class="meta">${escapeHtml(e.date || "")} · ${escapeHtml(catLabel(e.category))} · pagó ${escapeHtml(memberName(e.paidBy))}</p>
+              <p class="title">${escapeHtml(e.name)}${tags}</p>
+              <p class="meta">${escapeHtml(e.date || "")} · pagó ${escapeHtml(memberName(e.paidBy))}</p>
             </div>
             <div class="amt">${formatEuro(e.amount)}</div>
             <div class="actions">
@@ -1059,10 +1080,18 @@
       if (code.length !== 6) throw new Error("El código debe tener 6 caracteres.");
       const ref = doc(db, "homes", code);
       const snap = await getDoc(ref);
-      if (!snap.exists()) throw new Error("No hay sala con ese código.");
-      const memberId = uid();
+      if (!snap.exists()) throw new Error("No hay hogar con ese código.");
       const members = { ...(snap.data().members || {}) };
-      members[memberId] = { name, joinedAt: Date.now() };
+      // Reutilizar miembro por nombre → el hogar es permanente
+      const existing = Object.entries(members).find(
+        ([, m]) => String(m.name || "").trim().toLowerCase() === name.trim().toLowerCase()
+      );
+      const memberId = existing?.[0] || uid();
+      members[memberId] = {
+        name,
+        joinedAt: existing?.[1]?.joinedAt || Date.now(),
+        lastSeenAt: Date.now(),
+      };
       await updateDoc(ref, { members });
       attachHome({ code, memberId, name });
     }
@@ -1201,7 +1230,7 @@
         toast("Ya estaba saldado");
         return;
       }
-      if (!confirm("¿Marcar este mes como saldado entre vosotros?")) return;
+      if (!confirm("¿Confirmáis que ya os habéis pagado lo que os debíais este mes? Los gastos no se borran; solo se marca la cuenta como cerrada.")) return;
       const payload = {
         monthKey: state.monthKey,
         createdAt: Date.now(),
@@ -1308,13 +1337,17 @@
     $("#btn-add-fixed").addEventListener("click", () => openFixed());
     $("#btn-apply-fixed").addEventListener("click", () => applyFixedToMonth());
     $("#btn-sala").addEventListener("click", openSala);
-    $("#btn-import").addEventListener("click", () => {
+    function openImport() {
       importRows = [];
       $("#import-error").hidden = true;
       $("#import-preview").hidden = true;
       $("#import-file").value = "";
       $("#btn-import-run").disabled = true;
       openSheet($("#import-sheet"));
+    }
+    $("#menu-import")?.addEventListener("click", () => {
+      closeMenu();
+      openImport();
     });
     $("#btn-copy-code-live")?.addEventListener("click", async () => {
       const code = $("#share-code-live").textContent;
