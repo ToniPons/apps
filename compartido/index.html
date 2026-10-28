@@ -899,12 +899,10 @@
         const creditor = bal.delta > 0 ? bal.a : bal.b;
         const debtor = bal.delta > 0 ? bal.b : bal.a;
         const amount = Math.abs(bal.delta);
-        const debtorLabel = debtor === meId() || debtor === "me" ? "Tú" : memberName(debtor);
-        const creditorLabel = creditor === meId() || creditor === "me" ? "ti" : memberName(creditor);
-        $("#balance-amount").textContent =
-          debtorLabel === "Tú"
-            ? `Debes ${formatEuro(amount)} a ${memberName(creditor)}`
-            : `${debtorLabel} te debe ${formatEuro(amount)}`;
+        const debtorIsMe = debtor === meId() || debtor === "me";
+        $("#balance-amount").textContent = debtorIsMe
+          ? `Debes ${formatEuro(amount)} a ${memberName(creditor)}`
+          : `${memberName(debtor)} te debe ${formatEuro(amount)}`;
         $("#balance-sub").textContent =
           `Tú adelantaste ${formatEuro(bal.paidA)} · ${memberName(bal.b)} adelantó ${formatEuro(bal.paidB)}.${sharedNote}`;
       }
