@@ -886,12 +886,7 @@
         banner.textContent = state.syncError;
       } else if (state.mode === "local") {
         banner.hidden = false;
-        banner.innerHTML = `<div class="banner-body">
-          <span>Crea o únete a vuestro hogar (una sola sala, para siempre). Luego podéis importar un Excel/CSV.</span>
-          <div class="banner-actions">
-            <button type="button" class="btn btn-primary" id="banner-start-home">Crear o unirse</button>
-          </div>
-        </div>`;
+        banner.textContent = "Usa «Crear o unirse» para vuestro hogar (una sola sala, para siempre). Luego podéis importar un Excel/CSV.";
       } else if (homeMemberCount() < 2) {
         banner.hidden = false;
         banner.classList.add("is-invite");
@@ -1295,7 +1290,7 @@
           paidBy,
         });
       }
-      toast(`Añadidos ${toAdd.length} fijos`);
+      toast(toAdd.length === 1 ? "Añadido 1 fijo" : `Añadidos ${toAdd.length} fijos`);
     }
 
     async function settleMonth() {
@@ -1607,7 +1602,7 @@
     });
 
     $("#setup-banner").addEventListener("click", async (e) => {
-      if (e.target.closest("#banner-start-home") || e.target.closest("#banner-invite")) {
+      if (e.target.closest("#banner-invite")) {
         openSala();
         return;
       }
