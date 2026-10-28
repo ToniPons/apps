@@ -372,6 +372,7 @@
       <div class="field">
         <label for="expense-paidby">Lo pagó</label>
         <select id="expense-paidby"></select>
+        <span class="hint">Cuenta compartida = domiciliado / dinero común (no genera deuda entre vosotros).</span>
       </div>
       <p class="error" id="expense-error" hidden></p>
       <div class="row-actions">
@@ -402,7 +403,7 @@
       <div class="field">
         <label for="fixed-paidby">Suele pagar</label>
         <select id="fixed-paidby"></select>
-        <span class="hint">Quien normalmente abona el recibo (luego se parte a medias).</span>
+        <span class="hint">Si sale de la cuenta conjunta, elige Cuenta compartida.</span>
       </div>
       <p class="error" id="fixed-error" hidden></p>
       <div class="row-actions">
@@ -474,7 +475,7 @@
     <div class="field">
       <label for="import-file">Archivo</label>
       <input id="import-file" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-      <span class="hint">Columnas: fecha, concepto, importe, categoria, pagado_por (yo / pareja / nombre)</span>
+      <span class="hint">Columnas: fecha, concepto, importe, categoria, pagado_por (yo / pareja / compartida / nombre)</span>
     </div>
     <p class="error" id="import-error" hidden></p>
     <p class="lead" id="import-preview" hidden></p>
@@ -650,8 +651,21 @@
     function homeMemberCount() {
       return Object.keys(state.members).length;
     }
+    const SHARED_PAYER = "shared";
+
     function resolvePaidBy(raw) {
       const v = String(raw || "").trim().toLowerCase();
+      if (
+        v === "shared" ||
+        v === "compartida" ||
+        v === "cuenta compartida" ||
+        v === "conjunta" ||
+        v === "cuenta conjunta" ||
+        v === "domiciliado" ||
+        v === "domiciliada"
+      ) {
+        return SHARED_PAYER;
+      }
       if (!v || v === "yo" || v === "me" || v === "tú" || v === "tu") return meId();
       if (v === "pareja" || v === "other" || v === "otro" || v === "otra") {
         return partnerId() || "other";
@@ -697,6 +711,7 @@
     }
     function memberName(id) {
       if (!id) return "—";
+      if (id === SHARED_PAYER || id === "shared") return "Cuenta compartida";
       if (state.mode === "local" && !state.members[id]) {
         if (id === "me") return loadName() || "Yo";
         if (id === "other") return "Pareja";
@@ -725,6 +740,7 @@
         opts.push(`<option value="me">Yo</option>`);
         opts.push(`<option value="other">Pareja</option>`);
       }
+      opts.push(`<option value="${SHARED_PAYER}">Cuenta compartida</option>`);
       select.innerHTML = opts.join("");
       if (selected && [...select.options].some((o) => o.value === selected)) select.value = selected;
     }
@@ -738,16 +754,21 @@
     function computeBalance(expenses = monthExpenses()) {
       const a = meId();
       const b = partnerId() || "other";
-      let paidA = 0, paidB = 0;
+      let paidA = 0, paidB = 0, shared = 0;
       for (const e of expenses) {
-        if (e.paidBy === a) paidA += e.amount || 0;
+        if (e.paidBy === SHARED_PAYER || e.paidBy === "shared") shared += e.amount || 0;
+        else if (e.paidBy === a) paidA += e.amount || 0;
         else paidB += e.amount || 0;
       }
-      const total = paidA + paidB;
-      const share = total / 2;
-      // positive delta => partner owes me (I paid more than half)
+      // Solo lo adelantado por cada uno cuenta para la deuda; la cuenta conjunta no genera desajuste
+      const personal = paidA + paidB;
+      const share = personal / 2;
       const delta = paidA - share;
-      return { a, b, paidA, paidB, share, total, delta, waiting: !partnerId() && state.mode === "room" };
+      const total = personal + shared;
+      return {
+        a, b, paidA, paidB, shared, share, total, delta,
+        waiting: !partnerId() && state.mode === "room",
+      };
     }
 
     function isMonthSettled() {
@@ -846,25 +867,28 @@
       const card = $("#balance-card");
       const settled = isMonthSettled();
       card.classList.remove("is-even", "is-owe");
+      const sharedNote = bal.shared
+        ? ` · ${formatEuro(bal.shared)} desde cuenta compartida`
+        : "";
       if (settled) {
         card.classList.add("is-even");
         $("#balance-amount").textContent = "Mes saldado";
-        $("#balance-sub").textContent = `Total del mes ${formatEuro(bal.total || (bal.paidA + bal.paidB))} · marcado como arreglado.`;
-      } else if (!bal.total && !bal.paidA) {
+        $("#balance-sub").textContent = `Total del mes ${formatEuro(bal.total || 0)} · marcado como arreglado${sharedNote}.`;
+      } else if (!bal.total) {
         card.classList.add("is-even");
         $("#balance-amount").textContent = "Sin movimientos";
-        $("#balance-sub").textContent = "Cuando haya gastos, verás quién debe a quién (50/50).";
+        $("#balance-sub").textContent = "Cuando haya gastos, verás quién debe a quién (50/50). La cuenta compartida no genera deuda.";
       } else if (Math.abs(bal.delta) < 0.005) {
         card.classList.add("is-even");
         $("#balance-amount").textContent = "Estáis a mano";
-        $("#balance-sub").textContent = `Total ${formatEuro(bal.total)} · ${formatEuro(bal.share)} cada uno.`;
+        $("#balance-sub").textContent = `Total ${formatEuro(bal.total)}${sharedNote}.`;
       } else {
         card.classList.add("is-owe");
         const creditor = bal.delta > 0 ? bal.a : bal.b;
         const debtor = bal.delta > 0 ? bal.b : bal.a;
         const amount = Math.abs(bal.delta);
         $("#balance-amount").textContent = `${memberName(debtor)} debe ${formatEuro(amount)}`;
-        $("#balance-sub").textContent = `a ${memberName(creditor)} · Total ${formatEuro(bal.total)} (${formatEuro(bal.paidA)} / ${formatEuro(bal.paidB)} pagados)`;
+        $("#balance-sub").textContent = `a ${memberName(creditor)} · Adelantos ${formatEuro(bal.paidA)} / ${formatEuro(bal.paidB)}${sharedNote}`;
       }
 
       // Tabs
@@ -1153,8 +1177,13 @@
       const date = `${state.monthKey}-${day}`;
       for (const r of toAdd) {
         let paidBy = r.paidBy;
-        if (state.mode === "room" && paidBy && !state.members[paidBy]) paidBy = meId();
-        if (state.mode === "local" && paidBy !== "me" && paidBy !== "other") paidBy = "me";
+        if (paidBy === SHARED_PAYER || paidBy === "shared") {
+          paidBy = SHARED_PAYER;
+        } else if (state.mode === "room" && paidBy && !state.members[paidBy]) {
+          paidBy = meId();
+        } else if (state.mode === "local" && paidBy !== "me" && paidBy !== "other") {
+          paidBy = "me";
+        }
         await upsertExpense({
           name: r.name,
           amount: r.amount,
