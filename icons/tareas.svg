@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Tareas">
-  <rect width="64" height="64" rx="16" fill="#1a2e28"/>
-  <rect x="14" y="14" width="36" height="36" rx="10" fill="#eef6f1"/>
-  <path d="M22 32.5l5.2 5.2L42 23" stroke="#d97706" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>

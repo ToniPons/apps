@@ -1,6 +1,6 @@
 /**
- * Mismo proyecto Firebase que Tareas (Spark).
- * Colección distinta: homes/… (gastos compartidos).
+ * Proyecto Firebase (Spark) para Compartido.
+ * Colección: homes/… (gastos compartidos).
  */
 window.COMPARTIDO_FIREBASE = {
   apiKey: "AIzaSyC0diYdLYYwtHsGIe1orJD4FpoLnMNp9Pw",
