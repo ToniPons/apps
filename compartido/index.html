@@ -515,6 +515,7 @@
       ocio: "ocio", recreativos: "ocio", recreativo: "ocio", entretenimiento: "ocio",
       otros: "otros", other: "otros",
     };
+    const SHARED_PAYER = "shared";
 
     const $ = (s, r = document) => r.querySelector(s);
     const uid = () => crypto.randomUUID?.() || `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -651,8 +652,6 @@
     function homeMemberCount() {
       return Object.keys(state.members).length;
     }
-    const SHARED_PAYER = "shared";
-
     function resolvePaidBy(raw) {
       const v = String(raw || "").trim().toLowerCase();
       if (
