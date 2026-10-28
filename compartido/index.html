@@ -298,14 +298,15 @@
     </section>
 
     <div class="toolbar">
-      <button type="button" class="btn btn-primary" id="btn-sala">Sala</button>
+      <button type="button" class="btn btn-primary" id="btn-sala">Empezar hogar</button>
       <button type="button" class="btn" id="btn-apply-fixed">Meter fijos</button>
+      <button type="button" class="btn" id="btn-import">Importar</button>
       <div class="menu-wrap">
         <button type="button" class="btn-icon" id="btn-more" aria-label="Más" aria-expanded="false">⋯</button>
         <div class="menu" id="more-menu" hidden>
-          <button type="button" id="menu-copy-code" hidden>Copiar código</button>
+          <button type="button" id="menu-copy-code" hidden>Copiar código del hogar</button>
           <button type="button" id="menu-settle">Marcar saldado</button>
-          <button type="button" class="is-danger" id="menu-leave" hidden>Salir de sala</button>
+          <button type="button" class="is-danger" id="menu-leave" hidden>Abandonar hogar…</button>
         </div>
       </div>
     </div>
@@ -365,6 +366,10 @@
         <input id="expense-date" type="date" required />
       </div>
       <div class="field">
+        <label for="expense-category">Categoría</label>
+        <select id="expense-category"></select>
+      </div>
+      <div class="field">
         <label for="expense-paidby">Lo pagó</label>
         <select id="expense-paidby"></select>
       </div>
@@ -391,6 +396,10 @@
         <input id="fixed-amount" inputmode="decimal" required placeholder="750" />
       </div>
       <div class="field">
+        <label for="fixed-category">Categoría</label>
+        <select id="fixed-category"></select>
+      </div>
+      <div class="field">
         <label for="fixed-paidby">Suele pagar</label>
         <select id="fixed-paidby"></select>
         <span class="hint">Quien normalmente abona el recibo (luego se parte a medias).</span>
@@ -405,47 +414,74 @@
 
   <div class="sheet" id="sala-sheet" hidden>
     <div class="sheet-handle" aria-hidden="true"></div>
-    <h2>Sala compartida</h2>
-    <p class="lead">Misma lógica que Tareas: un código y los dos veis los mismos gastos.</p>
-    <div class="seg" role="tablist">
-      <button type="button" class="is-active" data-sala-tab="create">Crear</button>
-      <button type="button" data-sala-tab="join">Unirse</button>
-    </div>
-    <form id="create-form">
-      <div class="field">
-        <label for="share-name">Tu nombre</label>
-        <input id="share-name" maxlength="24" required placeholder="Ej. Toni" autocomplete="nickname" />
-      </div>
-      <p class="error" id="share-error" hidden></p>
-      <div id="share-result" hidden>
-        <p class="lead" style="margin-bottom:0.25rem">Código</p>
-        <div class="code-display" id="share-code"></div>
-        <div class="row-actions">
-          <button type="button" class="btn" id="btn-copy-code">Copiar</button>
-          <button type="button" class="btn btn-primary" data-close>Listo</button>
-        </div>
-      </div>
-      <div class="row-actions" id="share-actions">
-        <button type="button" class="btn" data-close>Cancelar</button>
-        <button type="submit" class="btn btn-primary">Crear sala</button>
-      </div>
-    </form>
-    <form id="join-form" hidden>
-      <div class="field">
-        <label for="join-code">Código</label>
-        <input id="join-code" maxlength="6" required placeholder="ABC123" autocomplete="off"
-          style="text-transform:uppercase;letter-spacing:0.14em;font-weight:700" />
-      </div>
-      <div class="field">
-        <label for="join-name">Tu nombre</label>
-        <input id="join-name" maxlength="24" required placeholder="Ej. Mirggi" autocomplete="nickname" />
-      </div>
-      <p class="error" id="join-error" hidden></p>
+    <h2 id="sala-title">Vuestro hogar</h2>
+    <p class="lead" id="sala-lead">Una sola sala para siempre. Cuando estéis los dos, se queda fija en este dispositivo.</p>
+    <div id="sala-invite" hidden>
+      <p class="lead" style="margin-bottom:0.25rem">Pásale este código a tu pareja</p>
+      <div class="code-display" id="share-code-live"></div>
       <div class="row-actions">
-        <button type="button" class="btn" data-close>Cancelar</button>
-        <button type="submit" class="btn btn-primary">Entrar</button>
+        <button type="button" class="btn" id="btn-copy-code-live">Copiar</button>
+        <button type="button" class="btn btn-primary" data-close>Listo</button>
       </div>
-    </form>
+    </div>
+    <div id="sala-setup">
+      <div class="seg" role="tablist">
+        <button type="button" class="is-active" data-sala-tab="create">Crear</button>
+        <button type="button" data-sala-tab="join">Unirse</button>
+      </div>
+      <form id="create-form">
+        <div class="field">
+          <label for="share-name">Tu nombre</label>
+          <input id="share-name" maxlength="24" required placeholder="Ej. Toni" autocomplete="nickname" />
+        </div>
+        <p class="error" id="share-error" hidden></p>
+        <div id="share-result" hidden>
+          <p class="lead" style="margin-bottom:0.25rem">Código del hogar (guárdalo)</p>
+          <div class="code-display" id="share-code"></div>
+          <div class="row-actions">
+            <button type="button" class="btn" id="btn-copy-code">Copiar</button>
+            <button type="button" class="btn btn-primary" data-close>Listo</button>
+          </div>
+        </div>
+        <div class="row-actions" id="share-actions">
+          <button type="button" class="btn" data-close>Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear hogar</button>
+        </div>
+      </form>
+      <form id="join-form" hidden>
+        <div class="field">
+          <label for="join-code">Código</label>
+          <input id="join-code" maxlength="6" required placeholder="ABC123" autocomplete="off"
+            style="text-transform:uppercase;letter-spacing:0.14em;font-weight:700" />
+        </div>
+        <div class="field">
+          <label for="join-name">Tu nombre</label>
+          <input id="join-name" maxlength="24" required placeholder="Ej. Mirggi" autocomplete="nickname" />
+        </div>
+        <p class="error" id="join-error" hidden></p>
+        <div class="row-actions">
+          <button type="button" class="btn" data-close>Cancelar</button>
+          <button type="submit" class="btn btn-primary">Entrar al hogar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="sheet" id="import-sheet" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <h2>Importar gastos</h2>
+    <p class="lead">Sube un CSV o Excel (.xlsx). En Drive: Archivo → Descargar → Excel o CSV.</p>
+    <div class="field">
+      <label for="import-file">Archivo</label>
+      <input id="import-file" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+      <span class="hint">Columnas: fecha, concepto, importe, categoria, pagado_por (yo / pareja / nombre)</span>
+    </div>
+    <p class="error" id="import-error" hidden></p>
+    <p class="lead" id="import-preview" hidden></p>
+    <div class="row-actions">
+      <button type="button" class="btn" data-close>Cancelar</button>
+      <button type="button" class="btn btn-primary" id="btn-import-run" disabled>Importar</button>
+    </div>
   </div>
 
   <script src="./firebase-config.js"></script>
@@ -462,6 +498,22 @@
     const NAME_KEY = "compartido-name-v1";
     const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+    const CATEGORIES = [
+      { id: "hipoteca", label: "Hipoteca" },
+      { id: "coche", label: "Coche" },
+      { id: "servicios", label: "Servicios" },
+      { id: "comida", label: "Comida" },
+      { id: "ocio", label: "Ocio" },
+      { id: "otros", label: "Otros" },
+    ];
+    const CAT_ALIASES = {
+      hipoteca: "hipoteca", mortgage: "hipoteca", alquiler: "hipoteca",
+      coche: "coche", auto: "coche", cochee: "coche",
+      servicios: "servicios", luz: "servicios", agua: "servicios", gas: "servicios", internet: "servicios",
+      comida: "comida", supermercado: "comida", mercadona: "comida",
+      ocio: "ocio", recreativos: "ocio", recreativo: "ocio", entretenimiento: "ocio",
+      otros: "otros", other: "otros",
+    };
 
     const $ = (s, r = document) => r.querySelector(s);
     const uid = () => crypto.randomUUID?.() || `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -577,8 +629,41 @@
       }
     }
 
-    const sheets = [$("#expense-sheet"), $("#fixed-sheet"), $("#sala-sheet")];
+    const sheets = [$("#expense-sheet"), $("#fixed-sheet"), $("#sala-sheet"), $("#import-sheet")];
     const backdrop = $("#sheet-backdrop");
+    let importRows = [];
+
+    function catLabel(id) {
+      return CATEGORIES.find((c) => c.id === id)?.label || "Otros";
+    }
+    function normalizeCategory(raw) {
+      const key = String(raw || "").trim().toLowerCase();
+      if (!key) return "otros";
+      if (CATEGORIES.some((c) => c.id === key)) return key;
+      return CAT_ALIASES[key] || "otros";
+    }
+    function fillCategorySelect(select, selected = "otros") {
+      select.innerHTML = CATEGORIES.map(
+        (c) => `<option value="${c.id}"${c.id === selected ? " selected" : ""}>${c.label}</option>`
+      ).join("");
+    }
+    function homeMemberCount() {
+      return Object.keys(state.members).length;
+    }
+    function resolvePaidBy(raw) {
+      const v = String(raw || "").trim().toLowerCase();
+      if (!v || v === "yo" || v === "me" || v === "tú" || v === "tu") return meId();
+      if (v === "pareja" || v === "other" || v === "otro" || v === "otra") {
+        return partnerId() || "other";
+      }
+      if (state.mode === "room") {
+        for (const [id, m] of Object.entries(state.members)) {
+          if (String(m.name || "").toLowerCase() === v) return id;
+        }
+        if (String(state.session?.name || "").toLowerCase() === v) return meId();
+      }
+      return meId();
+    }
 
     function openSheet(sheet) {
       closeMenu();
@@ -733,12 +818,26 @@
         banner.textContent = state.syncError;
       } else if (state.mode === "local") {
         banner.hidden = false;
-        banner.textContent = "Modo local. Crea o únete a una sala para sincronizar con tu pareja.";
+        banner.textContent = "Crea o únete a vuestro hogar (una sola sala, para siempre). Luego podéis importar un Excel/CSV.";
+      } else if (homeMemberCount() < 2) {
+        banner.hidden = false;
+        banner.textContent = `Hogar ${state.session?.code || ""} activo. Invita a tu pareja con el código; cuando entre, os quedáis aquí.`;
       } else {
         banner.hidden = true;
       }
 
-      $("#btn-sala").hidden = state.mode === "room";
+      const salaBtn = $("#btn-sala");
+      if (state.mode === "room") {
+        if (homeMemberCount() >= 2) {
+          salaBtn.hidden = true;
+        } else {
+          salaBtn.hidden = false;
+          salaBtn.textContent = "Invitar";
+        }
+      } else {
+        salaBtn.hidden = false;
+        salaBtn.textContent = "Empezar hogar";
+      }
       $("#menu-leave").hidden = state.mode !== "room";
       $("#menu-copy-code").hidden = state.mode !== "room";
 
@@ -789,11 +888,11 @@
         list.innerHTML = expenses.map((e) => {
           const tag = e.kind === "fixed"
             ? `<span class="tag">Fijo</span>`
-            : `<span class="tag is-var">Variable</span>`;
+            : `<span class="tag is-var">${escapeHtml(catLabel(e.category))}</span>`;
           return `<li class="row" data-id="${e.id}">
             <div>
               <p class="title">${escapeHtml(e.name)}${tag}</p>
-              <p class="meta">${escapeHtml(e.date || "")} · pagó ${escapeHtml(memberName(e.paidBy))}</p>
+              <p class="meta">${escapeHtml(e.date || "")} · ${escapeHtml(catLabel(e.category))} · pagó ${escapeHtml(memberName(e.paidBy))}</p>
             </div>
             <div class="amt">${formatEuro(e.amount)}</div>
             <div class="actions">
@@ -816,7 +915,7 @@
         fe.hidden = true;
         fl.innerHTML = fixed.map((r) => `<li class="row" data-id="${r.id}">
           <div>
-            <p class="title">${escapeHtml(r.name)}</p>
+            <p class="title">${escapeHtml(r.name)}<span class="tag">${escapeHtml(catLabel(r.category))}</span></p>
             <p class="meta">Suele pagar ${escapeHtml(memberName(r.paidBy))}</p>
           </div>
           <div class="amt">${formatEuro(r.amount)}</div>
@@ -957,7 +1056,7 @@
       state.settlements = local.settlements;
       state.syncError = null;
       render();
-      toast("Volviste al modo local");
+      toast("Has salido del hogar en este dispositivo");
     }
 
     async function upsertExpense(data, id) {
@@ -967,6 +1066,7 @@
         date: data.date,
         monthKey: data.date.slice(0, 7),
         kind: data.kind || "variable",
+        category: normalizeCategory(data.category),
         recurringId: data.recurringId || null,
         paidBy: data.paidBy,
         updatedAt: Date.now(),
@@ -1003,6 +1103,7 @@
       const payload = {
         name: data.name,
         amount: data.amount,
+        category: normalizeCategory(data.category),
         paidBy: data.paidBy,
         active: true,
         updatedAt: Date.now(),
@@ -1059,6 +1160,7 @@
           amount: r.amount,
           date,
           kind: "fixed",
+          category: r.category || "otros",
           recurringId: r.id,
           paidBy,
         });
@@ -1091,6 +1193,7 @@
     function openExpense(edit = null) {
       $("#expense-error").hidden = true;
       fillPaidBySelect($("#expense-paidby"), edit?.paidBy || meId());
+      fillCategorySelect($("#expense-category"), normalizeCategory(edit?.category || "comida"));
       if (edit) {
         $("#expense-title").textContent = "Editar gasto";
         $("#expense-id").value = edit.id;
@@ -1113,6 +1216,7 @@
     function openFixed(edit = null) {
       $("#fixed-error").hidden = true;
       fillPaidBySelect($("#fixed-paidby"), edit?.paidBy || meId());
+      fillCategorySelect($("#fixed-category"), normalizeCategory(edit?.category || "hipoteca"));
       if (edit) {
         $("#fixed-title").textContent = "Editar fijo";
         $("#fixed-id").value = edit.id;
@@ -1143,6 +1247,20 @@
         $("#setup-banner")?.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
+      // Already in home: only invite / show code (permanent room)
+      if (state.mode === "room" && state.session?.code) {
+        $("#sala-setup").hidden = true;
+        $("#sala-invite").hidden = false;
+        $("#sala-title").textContent = "Invitar al hogar";
+        $("#sala-lead").textContent = "Este hogar es permanente. Comparte el código para que entre tu pareja.";
+        $("#share-code-live").textContent = state.session.code;
+        openSheet($("#sala-sheet"));
+        return;
+      }
+      $("#sala-setup").hidden = false;
+      $("#sala-invite").hidden = true;
+      $("#sala-title").textContent = "Vuestro hogar";
+      $("#sala-lead").textContent = "Una sola sala para siempre. Cuando estéis los dos, se queda fija en este dispositivo.";
       setSalaTab("create");
       $("#share-error").hidden = true;
       $("#join-error").hidden = true;
@@ -1162,6 +1280,21 @@
     $("#btn-add-fixed").addEventListener("click", () => openFixed());
     $("#btn-apply-fixed").addEventListener("click", () => applyFixedToMonth());
     $("#btn-sala").addEventListener("click", openSala);
+    $("#btn-import").addEventListener("click", () => {
+      importRows = [];
+      $("#import-error").hidden = true;
+      $("#import-preview").hidden = true;
+      $("#import-file").value = "";
+      $("#btn-import-run").disabled = true;
+      openSheet($("#import-sheet"));
+    });
+    $("#btn-copy-code-live")?.addEventListener("click", async () => {
+      const code = $("#share-code-live").textContent;
+      try {
+        await navigator.clipboard.writeText(code);
+        toast("Código copiado");
+      } catch { toast(code); }
+    });
 
     $("#month-prev").addEventListener("click", () => {
       state.monthKey = shiftMonth(state.monthKey, -1);
@@ -1192,7 +1325,8 @@
     $("#menu-settle").addEventListener("click", () => { closeMenu(); settleMonth(); });
     $("#menu-leave").addEventListener("click", () => {
       closeMenu();
-      if (!confirm("¿Salir de la sala?")) return;
+      if (!confirm("El hogar es permanente. ¿Seguro que quieres abandonarlo en ESTE dispositivo? Los datos en la nube siguen; podrás volver a entrar con el código.")) return;
+      if (!confirm("Última confirmación: abandonar hogar en este móvil/ordenador.")) return;
       leaveHome();
     });
     $("#menu-copy-code").addEventListener("click", async () => {
@@ -1234,6 +1368,7 @@
         const existing = id ? state.expenses.find((x) => x.id === id) : null;
         await upsertExpense({
           name, amount, date, paidBy,
+          category: $("#expense-category").value,
           kind: existing?.kind || "variable",
           recurringId: existing?.recurringId || null,
         }, id);
@@ -1251,6 +1386,7 @@
       const name = $("#fixed-name").value.trim();
       const amount = parseAmount($("#fixed-amount").value);
       const paidBy = $("#fixed-paidby").value;
+      const category = $("#fixed-category").value;
       if (!name || !Number.isFinite(amount) || amount <= 0) {
         $("#fixed-error").hidden = false;
         $("#fixed-error").textContent = "Revisa concepto e importe.";
@@ -1258,7 +1394,7 @@
       }
       try {
         const id = $("#fixed-id").value || null;
-        await upsertFixed({ name, amount, paidBy }, id);
+        await upsertFixed({ name, amount, paidBy, category }, id);
         closeSheets();
         toast(id ? "Fijo actualizado" : "Fijo guardado");
       } catch (err) {
@@ -1317,7 +1453,7 @@
         $("#share-code").textContent = session.code;
         $("#share-result").hidden = false;
         $("#share-actions").hidden = true;
-        toast("Sala creada");
+        toast("Hogar creado");
       } catch (err) {
         console.error(err);
         $("#share-error").hidden = false;
@@ -1342,11 +1478,131 @@
       try {
         await joinHome($("#join-code").value, name);
         closeSheets();
-        toast("Dentro de la sala");
+        toast("Dentro del hogar");
       } catch (err) {
         console.error(err);
         $("#join-error").hidden = false;
         $("#join-error").textContent = err.message || "No se pudo entrar.";
+      }
+    });
+
+    function parseCsvText(text) {
+      const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length < 2) return [];
+      const splitLine = (line) => {
+        const cells = [];
+        let cur = "";
+        let q = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (q && line[i + 1] === '"') { cur += '"'; i++; }
+            else q = !q;
+          } else if ((ch === "," || ch === ";") && !q) {
+            cells.push(cur.trim());
+            cur = "";
+          } else cur += ch;
+        }
+        cells.push(cur.trim());
+        return cells;
+      };
+      const headers = splitLine(lines[0]).map((h) => h.toLowerCase().normalize("NFD").replace(/\p{M}/gu, ""));
+      const idx = (names) => headers.findIndex((h) => names.some((n) => h.includes(n)));
+      const iDate = idx(["fecha", "date"]);
+      const iName = idx(["concepto", "nombre", "descripcion", "description", "name"]);
+      const iAmount = idx(["importe", "cantidad", "amount", "precio", "total", "euro"]);
+      const iCat = idx(["categoria", "category", "tipo"]);
+      const iPaid = idx(["pagado", "pago", "quien", "paid", "pagador"]);
+      if (iName < 0 || iAmount < 0) throw new Error("Faltan columnas concepto e importe.");
+      const rows = [];
+      for (const line of lines.slice(1)) {
+        const cells = splitLine(line);
+        if (!cells.length || cells.every((c) => !c)) continue;
+        const amount = parseAmount(String(cells[iAmount] || "").replace(/[^\d,.\-]/g, ""));
+        if (!Number.isFinite(amount) || amount <= 0) continue;
+        let date = iDate >= 0 ? String(cells[iDate] || "").trim() : dateKey();
+        // Excel often: DD/MM/YYYY
+        const m = date.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+        if (m) {
+          const y = m[3].length === 2 ? `20${m[3]}` : m[3];
+          date = `${y}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) date = dateKey();
+        rows.push({
+          name: String(cells[iName] || "Gasto").slice(0, 80),
+          amount,
+          date,
+          category: normalizeCategory(iCat >= 0 ? cells[iCat] : "otros"),
+          paidBy: resolvePaidBy(iPaid >= 0 ? cells[iPaid] : "yo"),
+          kind: "variable",
+        });
+      }
+      return rows;
+    }
+
+    async function loadSheetJs() {
+      if (window.XLSX) return window.XLSX;
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
+        s.onload = resolve;
+        s.onerror = () => reject(new Error("No se pudo cargar el lector Excel"));
+        document.head.appendChild(s);
+      });
+      return window.XLSX;
+    }
+
+    async function fileToImportRows(file) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith(".csv") || file.type.includes("csv") || file.type === "text/plain") {
+        return parseCsvText(await file.text());
+      }
+      const XLSX = await loadSheetJs();
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array", cellDates: true });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const csv = XLSX.utils.sheet_to_csv(sheet);
+      return parseCsvText(csv);
+    }
+
+    $("#import-file").addEventListener("change", async () => {
+      const file = $("#import-file").files?.[0];
+      importRows = [];
+      $("#btn-import-run").disabled = true;
+      $("#import-preview").hidden = true;
+      $("#import-error").hidden = true;
+      if (!file) return;
+      try {
+        importRows = await fileToImportRows(file);
+        if (!importRows.length) throw new Error("No se encontraron filas válidas.");
+        const total = importRows.reduce((s, r) => s + r.amount, 0);
+        $("#import-preview").hidden = false;
+        $("#import-preview").textContent = `${importRows.length} gastos · ${formatEuro(total)}. Se añadirán al hogar/lista.`;
+        $("#btn-import-run").disabled = false;
+      } catch (err) {
+        console.error(err);
+        $("#import-error").hidden = false;
+        $("#import-error").textContent = err.message || "No se pudo leer el archivo.";
+      }
+    });
+
+    $("#btn-import-run").addEventListener("click", async () => {
+      if (!importRows.length) return;
+      $("#btn-import-run").disabled = true;
+      try {
+        let n = 0;
+        for (const row of importRows.slice(0, 500)) {
+          await upsertExpense(row);
+          n += 1;
+        }
+        closeSheets();
+        toast(`Importados ${n} gastos`);
+        importRows = [];
+      } catch (err) {
+        console.error(err);
+        $("#import-error").hidden = false;
+        $("#import-error").textContent = "Falló la importación a mitad.";
+        $("#btn-import-run").disabled = false;
       }
     });
 
