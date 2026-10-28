@@ -845,7 +845,7 @@
       const banner = $("#setup-banner");
       if (!firebaseReady) {
         banner.hidden = false;
-        banner.innerHTML = "Para usarlo con tu pareja hace falta Firebase (mismo proyecto que Tareas). Publica también las rules de <code>compartido/firestore.rules</code> (añaden la colección <code>homes</code>).";
+        banner.innerHTML = "Para usarlo con tu pareja hace falta Firebase. Publica también las rules de <code>compartido/firestore.rules</code> (colección <code>homes</code>).";
       } else if (state.syncError) {
         banner.hidden = false;
         banner.textContent = state.syncError;
