@@ -188,7 +188,43 @@
     }
     .tag.is-var { background: rgba(30,41,54,0.08); color: var(--ink-soft); }
     .tag.is-shared { background: rgba(31,138,91,0.14); color: #145c3c; }
+    .tag.is-pending { background: rgba(194,65,12,0.12); color: #9a3412; }
+    .tag.is-covered { background: rgba(31,138,91,0.14); color: #145c3c; }
     .row.is-shared { border-color: rgba(31,138,91,0.22); }
+    .row.is-covered {
+      opacity: 0.72;
+      background: rgba(255,255,255,0.55);
+    }
+    .row.is-covered .amt { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--muted); }
+    .row-foot {
+      grid-column: 1 / -1; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;
+      margin-top: 0.15rem;
+    }
+    .cover-btn {
+      padding: 0.35rem 0.65rem; border-radius: 0.65rem; font-size: 0.75rem; font-weight: 750;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.85); color: var(--ink-soft);
+    }
+    .cover-btn.is-pending {
+      border-color: rgba(194,65,12,0.28); background: rgba(194,65,12,0.08); color: #9a3412;
+    }
+    .cover-btn.is-covered {
+      border-color: rgba(31,138,91,0.3); background: rgba(31,138,91,0.1); color: #145c3c;
+    }
+    .cover-btn.is-na {
+      opacity: 0.85; cursor: default; color: var(--muted);
+    }
+    .filter-bar {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.3rem;
+      padding: 0.25rem; border-radius: 0.85rem; background: rgba(255,255,255,0.55);
+      border: 1px solid var(--line);
+    }
+    .filter-bar button {
+      padding: 0.45rem 0.35rem; border-radius: 0.65rem; font-weight: 700;
+      font-size: 0.78rem; color: var(--muted);
+    }
+    .filter-bar button.is-active {
+      background: rgba(30,41,54,0.08); color: var(--ink);
+    }
 
     .empty {
       padding: 2rem 1rem; text-align: center; color: var(--muted);
@@ -338,7 +374,7 @@
         <div class="menu" id="more-menu" role="menu" hidden>
           <button type="button" role="menuitem" id="menu-import">Importar Excel/CSV</button>
           <button type="button" role="menuitem" id="menu-copy-code" hidden>Copiar código del hogar</button>
-          <button type="button" role="menuitem" id="menu-settle">Ya nos hemos pagado este mes</button>
+          <button type="button" role="menuitem" id="menu-settle">Marcar todo el mes como cubierto</button>
           <button type="button" role="menuitem" class="is-danger" id="menu-leave" hidden>Abandonar hogar…</button>
         </div>
       </div>
@@ -353,6 +389,11 @@
     </div>
 
     <section class="panel is-active" id="panel-month" role="tabpanel" aria-labelledby="tab-month">
+      <div class="filter-bar" role="group" aria-label="Filtrar gastos del mes">
+        <button type="button" class="is-active" data-filter="all">Todos</button>
+        <button type="button" data-filter="pending">Pendientes</button>
+        <button type="button" data-filter="covered">Cubiertos</button>
+      </div>
       <ul class="list" id="expense-list"></ul>
       <p class="empty" id="expense-empty">No hay gastos este mes. Pulsa + para añadir, o «Aplicar fijos».</p>
     </section>
@@ -636,6 +677,7 @@
     const state = {
       mode: "local",
       tab: "month",
+      filter: "all", // all | pending | covered
       monthKey: monthKeyFromDate(new Date()),
       session: loadSession(),
       members: {},
@@ -794,28 +836,62 @@
         .sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
     }
 
+    function isSharedExpense(e) {
+      return e.paidBy === SHARED_PAYER || e.paidBy === "shared";
+    }
+
+    /** Gasto a medias que genera deuda entre vosotros */
+    function createsDebt(e) {
+      return !isSharedExpense(e);
+    }
+
+    function isExpenseCovered(e) {
+      if (isSharedExpense(e)) return true;
+      return e.covered === true;
+    }
+
     function computeBalance(expenses = monthExpenses()) {
       const a = meId();
       const b = partnerId() || "other";
       let paidA = 0, paidB = 0, shared = 0;
+      let pendingCount = 0, coveredCount = 0, pendingTotal = 0, coveredDebtTotal = 0;
+      let allTotal = 0;
       for (const e of expenses) {
-        if (e.paidBy === SHARED_PAYER || e.paidBy === "shared") shared += e.amount || 0;
-        else if (e.paidBy === a) paidA += e.amount || 0;
-        else paidB += e.amount || 0;
+        const amt = e.amount || 0;
+        allTotal += amt;
+        if (isSharedExpense(e)) {
+          shared += amt;
+          coveredCount += 1;
+          continue;
+        }
+        if (isExpenseCovered(e)) {
+          coveredCount += 1;
+          coveredDebtTotal += amt;
+          continue;
+        }
+        // Solo lo pendiente cuenta para la deuda actual
+        pendingCount += 1;
+        pendingTotal += amt;
+        if (e.paidBy === a) paidA += amt;
+        else paidB += amt;
       }
-      // Solo lo adelantado por cada uno cuenta para la deuda; la cuenta conjunta no genera desajuste
       const personal = paidA + paidB;
       const share = personal / 2;
       const delta = paidA - share;
-      const total = personal + shared;
       return {
-        a, b, paidA, paidB, shared, share, total, delta,
+        a, b, paidA, paidB, shared, share,
+        total: allTotal,
+        pendingTotal, coveredDebtTotal,
+        pendingCount, coveredCount,
+        delta,
         waiting: !partnerId() && state.mode === "room",
       };
     }
 
     function isMonthSettled() {
-      return state.settlements.some((s) => s.monthKey === state.monthKey);
+      const list = monthExpenses().filter(createsDebt);
+      if (!list.length) return state.settlements.some((s) => s.monthKey === state.monthKey);
+      return list.every(isExpenseCovered);
     }
 
     function forecast() {
@@ -918,26 +994,29 @@
       $("#menu-leave").hidden = state.mode !== "room";
       $("#menu-copy-code").hidden = state.mode !== "room";
 
-      // Balance
+      // Balance (solo gastos pendientes a medias)
       const bal = computeBalance();
       const card = $("#balance-card");
       const settled = isMonthSettled();
       card.classList.remove("is-even", "is-owe");
       const sharedNote = bal.shared
-        ? ` Cuenta compartida: ${formatEuro(bal.shared)} (no cuenta para la deuda).`
+        ? ` Cuenta compartida: ${formatEuro(bal.shared)}.`
         : "";
-      if (settled) {
-        card.classList.add("is-even");
-        $("#balance-amount").textContent = "Ya estáis pagados";
-        $("#balance-sub").textContent = `Cuenta cerrada este mes. Total gastado ${formatEuro(bal.total || 0)}.${sharedNote}`;
-      } else if (!bal.total) {
+      const coverNote = bal.pendingCount || bal.coveredCount
+        ? ` ${bal.pendingCount} pendiente${bal.pendingCount === 1 ? "" : "s"} · ${bal.coveredCount} cubierto${bal.coveredCount === 1 ? "" : "s"}.`
+        : "";
+      if (!bal.total) {
         card.classList.add("is-even");
         $("#balance-amount").textContent = "Sin movimientos";
-        $("#balance-sub").textContent = "Los gastos a medias generan una deuda clara. Lo de la cuenta compartida no.";
+        $("#balance-sub").textContent = "Marca cada gasto como pendiente o cubierto. La cuenta compartida no genera deuda.";
+      } else if (settled || (!bal.pendingCount && Math.abs(bal.delta) < 0.005)) {
+        card.classList.add("is-even");
+        $("#balance-amount").textContent = bal.pendingCount ? "Estáis a mano" : "Nada pendiente";
+        $("#balance-sub").textContent = `Todo lo a medias de este mes está cubierto. Total ${formatEuro(bal.total)}.${sharedNote}`;
       } else if (Math.abs(bal.delta) < 0.005) {
         card.classList.add("is-even");
         $("#balance-amount").textContent = "Estáis a mano";
-        $("#balance-sub").textContent = `Cada uno ha cubierto su mitad. Total ${formatEuro(bal.total)}.${sharedNote}`;
+        $("#balance-sub").textContent = `En lo pendiente, cada uno ha cubierto su mitad.${coverNote}${sharedNote}`;
       } else {
         card.classList.add("is-owe");
         const creditor = bal.delta > 0 ? bal.a : bal.b;
@@ -948,7 +1027,7 @@
           ? `Debes ${formatEuro(amount)} a ${memberName(creditor)}`
           : `${memberName(debtor)} te debe ${formatEuro(amount)}`;
         $("#balance-sub").textContent =
-          `Tú adelantaste ${formatEuro(bal.paidA)} · ${memberName(bal.b)} adelantó ${formatEuro(bal.paidB)}.${sharedNote}`;
+          `Solo pendientes: tú ${formatEuro(bal.paidA)} · ${memberName(bal.b)} ${formatEuro(bal.paidB)}.${coverNote}${sharedNote}`;
       }
 
       // Tabs + panels
@@ -984,8 +1063,16 @@
           ? "Los fijos ya están en este mes"
           : `Meter ${pendingFixed} fijo${pendingFixed === 1 ? "" : "s"} en este mes`;
 
-      // Month expenses
+      // Month expenses + filter
+      document.querySelectorAll(".filter-bar [data-filter]").forEach((b) => {
+        b.classList.toggle("is-active", b.dataset.filter === state.filter);
+      });
       const expenses = monthExpenses();
+      const filtered = expenses.filter((e) => {
+        if (state.filter === "pending") return createsDebt(e) && !isExpenseCovered(e);
+        if (state.filter === "covered") return isExpenseCovered(e);
+        return true;
+      });
       const list = $("#expense-list");
       const empty = $("#expense-empty");
       if (!expenses.length) {
@@ -994,15 +1081,31 @@
         empty.textContent = activeFixed.length && pendingFixed
           ? "No hay gastos este mes. Pulsa + o «Aplicar fijos»."
           : "No hay gastos este mes. Pulsa + para añadir el primero.";
+      } else if (!filtered.length) {
+        list.innerHTML = "";
+        empty.hidden = false;
+        empty.textContent = state.filter === "pending"
+          ? "No queda nada pendiente este mes."
+          : state.filter === "covered"
+            ? "Aún no has marcado ningún gasto como cubierto."
+            : "No hay gastos este mes.";
       } else {
         empty.hidden = true;
-        list.innerHTML = expenses.map((e) => {
-          const isShared = e.paidBy === SHARED_PAYER || e.paidBy === "shared";
+        list.innerHTML = filtered.map((e) => {
+          const isShared = isSharedExpense(e);
+          const covered = isExpenseCovered(e);
           const tags = [
             e.kind === "fixed" ? `<span class="tag">Fijo</span>` : `<span class="tag is-var">${escapeHtml(catLabel(e.category))}</span>`,
             isShared ? `<span class="tag is-shared">Compartida</span>` : "",
+            !isShared && covered ? `<span class="tag is-covered">Cubierto</span>` : "",
+            !isShared && !covered ? `<span class="tag is-pending">Pendiente</span>` : "",
           ].join("");
-          return `<li class="row${isShared ? " is-shared" : ""}" data-id="${e.id}" data-row-expense="${e.id}" tabindex="0" aria-label="${escapeHtml(e.name)}">
+          const coverCtrl = isShared
+            ? `<button type="button" class="cover-btn is-na" disabled title="La cuenta compartida no genera deuda">Sin deuda</button>`
+            : covered
+              ? `<button type="button" class="cover-btn is-covered" data-toggle-cover="${e.id}" aria-pressed="true">✓ Cubierto</button>`
+              : `<button type="button" class="cover-btn is-pending" data-toggle-cover="${e.id}" aria-pressed="false">○ Pendiente</button>`;
+          return `<li class="row${isShared ? " is-shared" : ""}${covered && !isShared ? " is-covered" : ""}" data-id="${e.id}" data-row-expense="${e.id}" tabindex="0" aria-label="${escapeHtml(e.name)}">
             <div>
               <p class="title">${escapeHtml(e.name)}${tags}</p>
               <p class="meta">${escapeHtml(e.date || "")} · pagó ${escapeHtml(memberName(e.paidBy))}</p>
@@ -1012,6 +1115,7 @@
               <button type="button" class="icon-btn" data-edit-expense="${e.id}" aria-label="Editar">✎</button>
               <button type="button" class="icon-btn" data-del-expense="${e.id}" aria-label="Eliminar">✕</button>
             </div>
+            <div class="row-foot">${coverCtrl}</div>
           </li>`;
         }).join("");
       }
@@ -1180,6 +1284,7 @@
     }
 
     async function upsertExpense(data, id, { merge = false } = {}) {
+      const existing = id ? state.expenses.find((e) => e.id === id) : null;
       const payload = {
         name: data.name,
         amount: data.amount,
@@ -1189,6 +1294,9 @@
         category: normalizeCategory(data.category),
         recurringId: data.recurringId || null,
         paidBy: data.paidBy,
+        covered: typeof data.covered === "boolean"
+          ? data.covered
+          : (existing?.covered === true),
         updatedAt: Date.now(),
         createdBy: state.session?.memberId || "local",
         createdByName: state.session?.name || "",
@@ -1357,12 +1465,35 @@
       }
     }
 
+    async function setExpenseCovered(id, covered) {
+      const item = state.expenses.find((e) => e.id === id);
+      if (!item || isSharedExpense(item)) return;
+      if (state.mode === "room" && db && state.session) {
+        await updateDoc(doc(db, "homes", state.session.code, "expenses", id), {
+          covered: Boolean(covered),
+          updatedAt: Date.now(),
+        });
+      } else {
+        state.expenses = state.expenses.map((e) =>
+          e.id === id ? { ...e, covered: Boolean(covered), updatedAt: Date.now() } : e
+        );
+        persistIfLocal();
+        render();
+      }
+    }
+
     async function settleMonth() {
-      if (isMonthSettled()) {
-        toast("Este mes ya estaba marcado como pagado");
+      const pending = monthExpenses().filter((e) => createsDebt(e) && !isExpenseCovered(e));
+      if (!pending.length) {
+        toast("Este mes ya no tiene nada pendiente");
         return;
       }
-      if (!confirm("¿Confirmáis que ya os habéis pagado lo que os debíais este mes? Los gastos no se borran; solo se marca la cuenta como cerrada.")) return;
+      if (!confirm(`¿Marcar los ${pending.length} gasto${pending.length === 1 ? "" : "s"} pendiente${pending.length === 1 ? "" : "s"} de este mes como cubiertos?\n\nLos gastos no se borran; solo dejan de contar en la deuda.`)) return;
+
+      for (const e of pending) {
+        await setExpenseCovered(e.id, true);
+      }
+
       const payload = {
         monthKey: state.monthKey,
         createdAt: Date.now(),
@@ -1375,7 +1506,7 @@
         persistIfLocal();
         render();
       }
-      toast("Mes marcado como pagado");
+      toast("Mes marcado como cubierto");
     }
 
     // ---- UI events ----
@@ -1504,6 +1635,12 @@
       state.tab = btn.dataset.tab;
       render();
     });
+    document.querySelector(".filter-bar")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-filter]");
+      if (!btn) return;
+      state.filter = btn.dataset.filter;
+      render();
+    });
     document.querySelector(".tabs").addEventListener("keydown", (e) => {
       const tabs = [...document.querySelectorAll(".tabs [data-tab]")];
       const i = tabs.indexOf(document.activeElement);
@@ -1612,6 +1749,17 @@
     });
 
     $("#expense-list").addEventListener("click", async (e) => {
+      const cover = e.target.closest("[data-toggle-cover]");
+      if (cover) {
+        e.stopPropagation();
+        const id = cover.dataset.toggleCover;
+        const item = state.expenses.find((x) => x.id === id);
+        if (!item) return;
+        const next = !isExpenseCovered(item);
+        await setExpenseCovered(id, next);
+        toast(next ? "Marcado como cubierto" : "Vuelve a pendiente");
+        return;
+      }
       const del = e.target.closest("[data-del-expense]");
       if (del) {
         e.stopPropagation();
@@ -1622,6 +1770,7 @@
         return;
       }
       if (e.target.closest(".actions") && !e.target.closest("[data-edit-expense]")) return;
+      if (e.target.closest(".row-foot")) return;
       const edit = e.target.closest("[data-edit-expense], [data-row-expense]");
       if (edit) {
         const id = edit.dataset.editExpense || edit.dataset.rowExpense;
