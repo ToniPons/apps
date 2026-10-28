@@ -78,7 +78,7 @@ a {
   justify-content: center;
   gap: clamp(2.5rem, 8vh, 4rem);
   min-height: 100dvh;
-  width: min(34rem, 100%);
+  width: min(36rem, 100%);
   margin: 0 auto;
   padding:
     max(2rem, env(safe-area-inset-top, 0px))
@@ -108,7 +108,7 @@ a {
 
 @media (min-width: 520px) {
   .app-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
