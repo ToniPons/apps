@@ -651,30 +651,18 @@
     }
 
     function computeBalance(expenses = monthExpenses()) {
-      const ids = state.mode === "room"
-        ? memberIds().slice(0, 2)
-        : ["me", "other"];
-      if (ids.length < 2) {
-        // only one member yet — treat partner as pending
-        const a = ids[0] || meId();
-        const b = "pending";
-        let paidA = 0;
-        for (const e of expenses) {
-          if (e.paidBy === a) paidA += e.amount || 0;
-        }
-        return { a, b, paidA, paidB: 0, share: paidA / 2, delta: paidA / 2, waiting: true };
-      }
-      const [a, b] = ids[0] === meId() ? ids : [ids.find((x) => x === meId()) || ids[0], ids.find((x) => x !== meId()) || ids[1]];
+      const a = meId();
+      const b = partnerId() || "other";
       let paidA = 0, paidB = 0;
       for (const e of expenses) {
         if (e.paidBy === a) paidA += e.amount || 0;
-        else if (e.paidBy === b) paidB += e.amount || 0;
+        else paidB += e.amount || 0;
       }
       const total = paidA + paidB;
       const share = total / 2;
-      // positive delta => B owes A (A paid more than share)
+      // positive delta => partner owes me (I paid more than half)
       const delta = paidA - share;
-      return { a, b, paidA, paidB, share, total, delta, waiting: false };
+      return { a, b, paidA, paidB, share, total, delta, waiting: !partnerId() && state.mode === "room" };
     }
 
     function isMonthSettled() {
